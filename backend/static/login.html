@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập - P2P SOS Unified</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f9; color: #1f2937; }
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #f8f9fc; display: flex; flex-direction: column; }
+.header { background: linear-gradient(90deg, #dc2626, #f97316); color: #fff; padding: 28px 16px; text-align: center; }
+.header h1 { margin: 0; font-size: 24px; }
+.header p { margin: 6px 0 0; font-size: 14px; opacity: .9; }
+.content { padding: 20px 14px; flex: 1; }
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+.card h2 { margin: 0 0 14px; font-size: 18px; }
+label { display: block; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px; }
+input { width: 100%; padding: 12px 14px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 16px; margin-bottom: 14px; background: #fff; }
+input:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
+.btn { width: 100%; border: none; border-radius: 12px; padding: 13px; font-size: 16px; font-weight: bold; color: #fff; cursor: pointer; background: #dc2626; }
+.btn.blue { background: #2563eb; }
+.btn.grey { background: #6b7280; margin-top: 8px; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 14px; }
+.hidden { display: none; }
+.hint { font-size: 12px; color: #6b7280; margin-top: -8px; margin-bottom: 14px; }
+.who { font-size: 15px; margin-bottom: 12px; }
+.footer { text-align: center; padding: 12px; background: #e5e7eb; font-size: 13px; color: #374151; }
+.footer b.ok { color: #16a34a; }
+.footer b.err { color: #dc2626; }
+</style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <h1>🚨 P2P SOS Unified</h1>
+        <p>Cứu hộ giao thông kết nối trực tiếp</p>
+    </div>
+
+    <div class="content">
+        <div class="card hidden" id="continueCard">
+            <h2>Bạn đang đăng nhập</h2>
+            <div class="who" id="continueWho"></div>
+            <button class="btn blue" onclick="goApp()">Tiếp tục vào app</button>
+            <button class="btn grey" onclick="switchAccount()">Đăng nhập tài khoản khác</button>
+        </div>
+
+        <div class="card" id="loginCard">
+            <h2>Đăng nhập</h2>
+            <div class="error hidden" id="errorBox"></div>
+            <label for="phoneInput">Số điện thoại</label>
+            <input type="tel" id="phoneInput" inputmode="numeric" placeholder="Ví dụ: 0901234567" autocomplete="tel">
+            <label for="nameInput">Tên hiển thị (không bắt buộc)</label>
+            <input type="text" id="nameInput" placeholder="Ví dụ: Hùng" maxlength="40">
+            <div class="hint">Số điện thoại mới sẽ được tự động đăng ký.</div>
+            <button class="btn" id="loginBtn" onclick="doLogin()">Vào App</button>
+        </div>
+    </div>
+
+    <div class="footer">Trạng thái hệ thống: <b id="sysStatus" class="err">Đang kết nối...</b></div>
+</div>
+
+<script>
+const API = window.location.origin;
+const APP_URL = "/static/index.html";
+const $ = id => document.getElementById(id);
+
+function showError(text) {
+    const box = $("errorBox");
+    box.textContent = text;
+    box.classList.toggle("hidden", !text);
+}
+
+function goApp() {
+    window.location.href = APP_URL;
+}
+
+function switchAccount() {
+    ["user_id", "phone", "name", "active_sos_id"].forEach(k => sessionStorage.removeItem(k));
+    $("continueCard").classList.add("hidden");
+    $("phoneInput").focus();
+}
+
+async function checkHealth() {
+    try {
+        const res = await fetch(API + "/api/health");
+        if (!res.ok) throw new Error();
+        $("sysStatus").textContent = "Đã kết nối Server thành công";
+        $("sysStatus").className = "ok";
+    } catch (e) {
+        $("sysStatus").textContent = "Không kết nối được Server";
+        $("sysStatus").className = "err";
+    }
+}
+
+async function doLogin() {
+    showError("");
+    const phone = $("phoneInput").value.replace(/[\s.\-]/g, "");
+    const name = $("nameInput").value.trim() || "ThanhVien";
+    if (!/^\d{9,11}$/.test(phone)) {
+        showError("Số điện thoại không hợp lệ. Hãy nhập 9 đến 11 chữ số.");
+        $("phoneInput").focus();
+        return;
+    }
+    const btn = $("loginBtn");
+    btn.disabled = true;
+    btn.textContent = "Đang đăng nhập...";
+    try {
+        const res = await fetch(`${API}/api/users?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}&role=unified`, { method: "POST" });
+        if (!res.ok) throw new Error("Máy chủ từ chối đăng nhập (" + res.status + ")");
+        const data = await res.json();
+        sessionStorage.setItem("user_id", data.user_id);
+        sessionStorage.setItem("phone", data.phone);
+        sessionStorage.setItem("name", data.name || name);
+        sessionStorage.removeItem("active_sos_id");
+        goApp();
+    } catch (e) {
+        showError(e.message.includes("Failed to fetch") ? "Không kết nối được Server. Hãy kiểm tra server đã chạy chưa." : e.message);
+        btn.disabled = false;
+        btn.textContent = "Vào App";
+    }
+}
+
+window.onload = function() {
+    checkHealth();
+    const uid = sessionStorage.getItem("user_id");
+    if (uid) {
+        $("continueWho").textContent = `${sessionStorage.getItem("name") || "Thành viên"} - SĐT ${sessionStorage.getItem("phone") || ""} (ID: ${uid})`;
+        $("continueCard").classList.remove("hidden");
+    }
+    ["phoneInput", "nameInput"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); }));
+    $("phoneInput").focus();
+};
+</script>
+</body>
+</html>
