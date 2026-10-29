@@ -8,7 +8,7 @@ from math import radians, sin, cos, sqrt, atan2
 from pydantic import BaseModel
 
 from backend import models
-from backend.database import Base
+from .database import Base
 
 database.init_db()
 
