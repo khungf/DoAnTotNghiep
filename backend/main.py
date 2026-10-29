@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from math import radians, sin, cos, sqrt, atan2
 from pydantic import BaseModel
 
-import models
-import database
+from backend import models
+from backend import database
 
 database.init_db()
 
