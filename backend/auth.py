@@ -1,8 +1,11 @@
 import os
 import re
+import json
 import hmac
 import hashlib
 import secrets
+import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -17,6 +20,10 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
 DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
+
+SPEEDSMS_TOKEN = os.getenv("SPEEDSMS_TOKEN", "")
+SPEEDSMS_TYPE = os.getenv("SPEEDSMS_TYPE", "4")
+SPEEDSMS_SENDER = os.getenv("SPEEDSMS_SENDER", "Verify")
 
 OTP_TTL_MINUTES = 5
 RESEND_COOLDOWN_SECONDS = 60
@@ -82,11 +89,35 @@ def get_current_user(authorization: str = Header(default=""), db: Session = Depe
         raise HTTPException(status_code=401, detail="Phiên đăng nhập không hợp lệ, hãy đăng nhập lại!")
     return user
 
+def to_intl_phone(phone: str) -> str:
+    if phone.startswith("0"):
+        return "84" + phone[1:]
+    return phone
+
 def send_sms(phone: str, code: str):
-    if DEV_MODE:
-        print(f"[DEV] OTP cho {phone}: {code}")
-        return
-    raise HTTPException(status_code=503, detail="Chưa cấu hình dịch vụ gửi SMS!")
+    if not SPEEDSMS_TOKEN:
+        if DEV_MODE:
+            print(f"[DEV] OTP cho {phone}: {code}")
+            return
+        raise HTTPException(status_code=503, detail="Chưa cấu hình dịch vụ gửi SMS!")
+
+    params = {
+        "access-token": SPEEDSMS_TOKEN,
+        "to": to_intl_phone(phone),
+        "content": f"Ma xac nhan P2P SOS cua ban la {code}. Co hieu luc {OTP_TTL_MINUTES} phut. Khong chia se ma nay cho ai.",
+        "type": SPEEDSMS_TYPE,
+        "sender": SPEEDSMS_SENDER,
+    }
+    url = "https://api.speedsms.vn/index.php/sms/send?" + urllib.parse.urlencode(params)
+    try:
+        with urllib.request.urlopen(url, timeout=15) as res:
+            data = json.loads(res.read().decode())
+    except (OSError, ValueError):
+        raise HTTPException(status_code=503, detail="Không gửi được SMS, vui lòng thử lại sau!")
+
+    if data.get("status") != "success":
+        print(f"[SMS] SpeedSMS báo lỗi: {data.get('code')} {data.get('message')}")
+        raise HTTPException(status_code=503, detail="Không gửi được SMS, vui lòng thử lại sau!")
 
 def email_sender(email: str):
     def send(code: str):

@@ -9,11 +9,12 @@ from math import radians, sin, cos, sqrt, atan2
 from pydantic import BaseModel
 
 from . import models, database, auth
+
 database.init_db()
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="P2P Emergency Rescue Platform", version="1.6")
+app = FastAPI(title="P2P Emergency Rescue Platform", version="1.7")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 CHAT_STATUSES = ("WAITING_APPROVAL", "CHATTING", "NEGOTIATING")
@@ -73,21 +75,6 @@ class MessageCreate(BaseModel):
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "message": "P2P Rescue Backend is running smoothly!"}
-
-@app.post("/api/users")
-def register_or_login(phone: str, name: str = "Thành Viên", role: str = "unified", db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.phone == phone).first()
-    if not user:
-        user = models.User(phone=phone, name=name, role=role)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    return {
-        "user_id": user.id,
-        "phone": user.phone,
-        "name": user.name,
-        "role": user.role
-    }
 
 @app.get("/api/users/{user_id}/sos")
 def get_user_sos(user_id: int, db: Session = Depends(get_db)):
