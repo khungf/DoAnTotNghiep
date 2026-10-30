@@ -1,40 +1,85 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.database import get_db
-from backend.models import Rating, SOSRequest
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/features", tags=["Features"])
+from .. import models, database, auth
 
-class RatingCreate(BaseModel):
-    sos_id: int
-    rater_id: int
-    target_id: int
-    score: int
-    comment: str
+router = APIRouter(prefix="/api", tags=["features"])
 
-@router.post("/rate")
-def rate_user(data: RatingCreate, db: Session = Depends(get_db)):
-    r = Rating(
-        sos_id=data.sos_id,
-        rater_id=data.rater_id,
-        target_id=data.target_id,
-        score=data.score,
-        comment=data.comment
+def get_sos_or_404(db: Session, sos_id: int):
+    sos = db.query(models.SOSRequest).filter(models.SOSRequest.id == sos_id).first()
+    if not sos:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đơn SOS này!")
+    return sos
+
+def require_participant(sos, user_id: int):
+    if user_id != sos.user_id and user_id != sos.helper_id:
+        raise HTTPException(status_code=403, detail="Bạn không thuộc đơn cứu hộ này!")
+
+class ReviewCreate(BaseModel):
+    rating: int
+    comment: str = ""
+
+class ReportCreate(BaseModel):
+    reported_id: int = None
+    reason: str
+
+class VerificationSubmit(BaseModel):
+    vehicle_info: str
+    vehicle_photo: str = ""
+    cert_photo: str = ""
+
+@router.post("/sos/{sos_id}/review")
+def create_review(sos_id: int, body: ReviewCreate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    if not (1 <= body.rating <= 5):
+        raise HTTPException(status_code=400, detail="Số sao đánh giá phải từ 1 đến 5!")
+    sos = get_sos_or_404(db, sos_id)
+    require_participant(sos, current.id)
+    if sos.status != "COMPLETED":
+        raise HTTPException(status_code=400, detail="Chỉ có thể đánh giá khi đơn đã hoàn thành!")
+    
+    target_id = sos.helper_id if current.id == sos.user_id else sos.user_id
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Không tìm thấy đối phương để đánh giá!")
+
+    existing = db.query(models.Review).filter(
+        models.Review.sos_id == sos_id,
+        models.Review.reviewer_id == current.id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bạn đã đánh giá đơn này rồi!")
+
+    review = models.Review(
+        sos_id=sos_id,
+        reviewer_id=current.id,
+        target_id=target_id,
+        rating=body.rating,
+        comment=body.comment.strip()
     )
-    db.add(r)
+    db.add(review)
     db.commit()
-    return {"status": "success", "message": "Đã gửi đánh giá thành công"}
+    return {"message": "Đã gửi đánh giá thành công! Cảm ơn bạn."}
 
-@router.get("/dashboard/{user_id}")
-def get_dashboard(user_id: int, db: Session = Depends(get_db)):
-    completed_count = db.query(SOSRequest).filter(
-        SOSRequest.user_id == user_id, SOSRequest.status == "Completed"
-    ).count()
-    ratings = db.query(Rating).filter(Rating.target_id == user_id).all()
-    avg_score = sum([r.score for r in ratings]) / len(ratings) if ratings else 5.0
-    return {
-        "completed_tasks": completed_count,
-        "average_rating": round(avg_score, 1),
-        "total_ratings": len(ratings)
-    }
+@router.post("/sos/{sos_id}/report")
+def report_incident(sos_id: int, body: ReportCreate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    sos = get_sos_or_404(db, sos_id)
+    require_participant(sos, current.id)
+    
+    report = models.UserReport(
+        reporter_id=current.id,
+        reported_id=body.reported_id,
+        sos_id=sos_id,
+        reason=body.reason.strip()
+    )
+    db.add(report)
+    db.commit()
+    return {"message": "Đã ghi nhận báo cáo an toàn. Đội ngũ hỗ trợ sẽ kiểm tra ngay lập tức."}
+
+@router.post("/helper/verify-submit")
+def submit_verification(body: VerificationSubmit, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    current.vehicle_info = body.vehicle_info.strip()
+    current.vehicle_photo = body.vehicle_photo.strip()
+    current.cert_photo = body.cert_photo.strip()
+    current.verification_status = "PENDING"
+    db.commit()
+    return {"message": "Đã gửi hồ sơ xác minh, hệ thống sẽ duyệt trong thời gian sớm nhất.", "status": current.verification_status}

@@ -1,16 +1,15 @@
 {
-  "short_name": "DoAnSOS",
-  "name": "Ứng dụng Hỗ trợ Khẩn cấp SOS",
+  "name": "P2P SOS Unified",
+  "short_name": "P2P SOS",
+  "start_url": "/static/login.html",
+  "display": "standalone",
+  "background_color": "#f8f9fc",
+  "theme_color": "#dc2626",
   "icons": [
     {
-      "src": "/static/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "src": "https://cdn-icons-png.flaticon.com/512/564/564619.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ],
-  "start_url": "/",
-  "background_color": "#ffffff",
-  "theme_color": "#dc2626",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

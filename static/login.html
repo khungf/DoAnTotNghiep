@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
 <title>Đăng nhập - P2P SOS Unified</title>
 <style>
 * { box-sizing: border-box; }
@@ -235,6 +236,9 @@ async function checkHealth() {
 
 window.onload = function() {
     checkHealth();
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+    }
     const uid = sessionStorage.getItem("user_id");
     if (uid) {
         $("continueWho").textContent = `${sessionStorage.getItem("name") || "Thành viên"} - SĐT ${sessionStorage.getItem("phone") || ""} (ID: ${uid})`;

@@ -1,42 +1,37 @@
-import os
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
-# Import database và models sẵn có
-from backend.database import engine
-from backend.models import Base
+from . import database, auth
+from .routers import sos, chat, features
 
-# Import các router mới trong thư mục backend/routers/
-from backend.routers import sos, chat, features
+database.init_db()
 
-# Tự động tạo bảng cơ sở dữ liệu nếu chưa có
-Base.metadata.create_all(bind=engine)
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="Do An Tot Nghiep - SOS System", version="1.0.0")
+app = FastAPI(title="P2P Emergency Rescue Platform", version="2.0")
 
-# Tự động tìm chính xác thư mục static ở cả thư mục gốc lẫn thư mục backend (phòng hờ khi deploy trên Render)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # Thư mục backend
-ROOT_DIR = os.path.dirname(BASE_DIR)                  # Thư mục gốc DoAnTotNghiep
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-STATIC_DIR = os.path.join(ROOT_DIR, "static")
-if not os.path.exists(STATIC_DIR):
-    STATIC_DIR = os.path.join(BASE_DIR, "static")
-
-# Mount thư mục static để chạy giao diện web, PWA (manifest.json, sw.js)
-if os.path.exists(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-# Nạp toàn bộ các router chức năng mới
+app.include_router(auth.router)
 app.include_router(sos.router)
 app.include_router(chat.router)
 app.include_router(features.router)
 
-# Route trang chủ: Tự động trả về file index.html thay vì hiện dòng chữ JSON
-@app.get("/")
-def read_root():
-    if STATIC_DIR:
-        index_path = os.path.join(STATIC_DIR, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-    return {"message": "API Đồ án Tốt nghiệp đang chạy ổn định!"}
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/static/login.html")
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "message": "P2P Rescue Backend is running smoothly!"}
