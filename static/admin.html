@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Quản trị - Duyệt hồ sơ thợ</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f9; color: #1f2937; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 20px; margin: 0 0 14px; color: #dc2626; }
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+input, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 15px; margin-bottom: 8px; }
+.row { display: flex; gap: 8px; }
+.btn { border: none; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: bold; color: #fff; cursor: pointer; background: #2563eb; }
+.btn.green { background: #16a34a; }
+.btn.red { background: #dc2626; }
+.photos { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.photos img { max-width: 48%; max-height: 220px; border-radius: 10px; border: 1px solid #e5e7eb; object-fit: cover; }
+.muted { color: #6b7280; font-size: 13px; }
+.error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px; border-radius: 10px; margin-bottom: 12px; font-size: 14px; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>🛠️ Duyệt hồ sơ thợ cứu hộ</h1>
+    <div class="card">
+        <input type="password" id="keyInput" placeholder="Mã quản trị (ADMIN_KEY)">
+        <div class="row">
+            <select id="statusSelect" style="margin-bottom:0;">
+                <option value="PENDING">Chờ duyệt</option>
+                <option value="APPROVED">Đã duyệt</option>
+                <option value="REJECTED">Đã từ chối</option>
+            </select>
+            <button class="btn" onclick="loadList()">Tải danh sách</button>
+        </div>
+    </div>
+    <div class="error hidden" id="errorBox"></div>
+    <div id="list"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const safeImg = s => (typeof s === "string" && s.startsWith("data:image/")) ? s : "";
+
+function showError(text) {
+    $("errorBox").textContent = text;
+    $("errorBox").classList.toggle("hidden", !text);
+}
+
+async function adminApi(path, options = {}) {
+    options.headers = Object.assign({ "X-Admin-Key": $("keyInput").value, "Content-Type": "application/json" }, options.headers);
+    const res = await fetch(path, options);
+    let body = null;
+    try { body = await res.json(); } catch (e) {}
+    if (!res.ok) throw new Error(body?.detail || "Lỗi " + res.status);
+    return body;
+}
+
+async function loadList() {
+    showError("");
+    sessionStorage.setItem("admin_key", $("keyInput").value);
+    try {
+        const status = $("statusSelect").value;
+        const rows = await adminApi("/api/admin/verifications?status=" + status);
+        $("list").innerHTML = rows.map(u => `
+            <div class="card">
+                <b>#${u.user_id} - ${esc(u.name)}</b> <span class="muted">SĐT ${esc(u.phone)}</span>
+                <div style="margin-top:6px;">Xe: ${esc(u.vehicle_info)}</div>
+                <div class="photos">
+                    ${safeImg(u.vehicle_photo) ? `<img src="${safeImg(u.vehicle_photo)}" alt="Ảnh xe">` : ""}
+                    ${safeImg(u.cert_photo) ? `<img src="${safeImg(u.cert_photo)}" alt="Ảnh giấy tờ">` : ""}
+                </div>
+                ${u.status === "PENDING" ? `<div class="row">
+                    <button class="btn green" onclick="decide(${u.user_id}, true)">✅ Duyệt</button>
+                    <button class="btn red" onclick="decide(${u.user_id}, false)">❌ Từ chối</button>
+                </div>` : `<span class="muted">${esc(u.status)}</span>`}
+            </div>`).join("") || '<div class="muted">Không có hồ sơ nào.</div>';
+    } catch (e) { showError(e.message); }
+}
+
+async function decide(userId, approve) {
+    let note = "";
+    if (!approve) {
+        note = prompt("Lý do từ chối (gửi cho thợ):") || "";
+    }
+    try {
+        await adminApi("/api/admin/verifications/" + userId, { method: "POST", body: JSON.stringify({ approve, note }) });
+        await loadList();
+    } catch (e) { showError(e.message); }
+}
+
+window.onload = () => {
+    $("keyInput").value = sessionStorage.getItem("admin_key") || "";
+};
+</script>
+</body>
+</html>
