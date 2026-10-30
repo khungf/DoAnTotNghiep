@@ -115,6 +115,17 @@ input:checked + .slider:before { transform: translateX(26px); }
             </div>
             <div style="margin-top: 8px; font-size: 16px;"><b id="accName"></b></div>
             <div class="muted" id="idLabel" style="margin-top: 2px;"></div>
+<div id="emailBox" style="margin-top: 10px;">
+    <div class="muted" id="emailStatus"></div>
+    <div id="emailForm" class="hidden" style="margin-top: 8px;">
+        <input type="email" id="emailInput" placeholder="Email nhận thông báo">
+        <input type="text" id="emailCodeInput" class="hidden" inputmode="numeric" maxlength="6" placeholder="Mã 6 số gửi về email">
+        <button class="btn blue small" id="emailActionBtn" onclick="emailAction()">Gửi mã xác nhận</button>
+        <button class="link" style="margin-left: 10px;" onclick="closeEmailForm()">Hủy</button>
+    </div>
+    <button class="link" id="emailToggleBtn" style="margin-top: 6px;" onclick="openEmailForm()">📧 Liên kết email nhận thông báo</button>
+    <button class="link-danger hidden" id="emailUnlinkBtn" style="margin-left: 12px;" onclick="unlinkEmail()">Gỡ email</button>
+</div>
         </div>
 
         <div class="card wait hidden" id="waitCard"></div>
@@ -512,7 +523,7 @@ async function checkHealth() {
 function logout() {
     if (pollTimer) clearInterval(pollTimer);
     if (radarTimer) clearInterval(radarTimer);
-    ["user_id", "phone", "name", "active_sos_id"].forEach(k => sessionStorage.removeItem(k));
+    ["user_id", "phone", "email", "name", "token", "active_sos_id"].forEach(k => sessionStorage.removeItem(k));
     window.location.replace("/static/login.html");
 }
 
@@ -891,12 +902,93 @@ async function completeOrderQuick(sosId) {
     }
 }
 
+const authHeaders = () => ({
+    "Authorization": "Bearer " + (sessionStorage.getItem("token") || ""),
+    "Content-Type": "application/json"
+});
+let emailStep = "input";
+
+function renderEmailBox() {
+    const email = sessionStorage.getItem("email");
+    $("emailStatus").textContent = email ? `📧 Email nhận thông báo: ${email}` : "Chưa liên kết email nhận thông báo";
+    $("emailToggleBtn").textContent = email ? "Đổi email" : "📧 Liên kết email nhận thông báo";
+    $("emailUnlinkBtn").classList.toggle("hidden", !email);
+}
+
+function openEmailForm() {
+    emailStep = "input";
+    $("emailInput").value = "";
+    $("emailInput").disabled = false;
+    $("emailCodeInput").value = "";
+    $("emailCodeInput").classList.add("hidden");
+    $("emailActionBtn").textContent = "Gửi mã xác nhận";
+    $("emailForm").classList.remove("hidden");
+    $("emailToggleBtn").classList.add("hidden");
+    $("emailUnlinkBtn").classList.add("hidden");
+    $("emailInput").focus();
+}
+
+function closeEmailForm() {
+    $("emailForm").classList.add("hidden");
+    $("emailToggleBtn").classList.remove("hidden");
+    renderEmailBox();
+}
+
+async function emailAction() {
+    const email = $("emailInput").value.trim().toLowerCase();
+    const btn = $("emailActionBtn");
+    if (!email) { alert("Hãy nhập email!"); return; }
+    btn.disabled = true;
+    try {
+        if (emailStep === "input") {
+            const data = await api("/api/auth/email/request", {
+                method: "POST",
+                headers: authHeaders(),
+                body: JSON.stringify({ email })
+            });
+            emailStep = "code";
+            $("emailInput").disabled = true;
+            $("emailCodeInput").classList.remove("hidden");
+            $("emailCodeInput").focus();
+            btn.textContent = "Xác nhận email";
+            showNotice(data.dev_code ? `Chế độ thử nghiệm - mã email: ${data.dev_code}` : "Đã gửi mã xác nhận tới email của bạn.");
+        } else {
+            const code = $("emailCodeInput").value.trim();
+            if (!/^\d{6}$/.test(code)) { alert("Mã xác nhận gồm đúng 6 chữ số."); return; }
+            const data = await api("/api/auth/email/verify", {
+                method: "POST",
+                headers: authHeaders(),
+                body: JSON.stringify({ email, code })
+            });
+            sessionStorage.setItem("email", data.email);
+            closeEmailForm();
+            showNotice("Đã liên kết email nhận thông báo.");
+        }
+    } catch (e) {
+        alert(e.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function unlinkEmail() {
+    if (!confirm("Gỡ email nhận thông báo?")) return;
+    try {
+        await api("/api/auth/email", { method: "DELETE", headers: authHeaders() });
+        sessionStorage.removeItem("email");
+        renderEmailBox();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
 window.onload = async function() {
     const uid = parseInt(sessionStorage.getItem("user_id"));
     if (!uid) return;
     checkHealth();
     $("accName").textContent = sessionStorage.getItem("name") || "Thành viên";
     $("idLabel").textContent = `SĐT ${sessionStorage.getItem("phone") || ""} - ID: ${uid}`;
+    renderEmailBox();
     
     loadSettings();
     radarTimer = setInterval(backgroundRadarPoll, 3000);

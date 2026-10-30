@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 from math import radians, sin, cos, sqrt, atan2
 from pydantic import BaseModel
 
-from . import models, database
-
+from . import models, database, auth
 database.init_db()
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -24,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 CHAT_STATUSES = ("WAITING_APPROVAL", "CHATTING", "NEGOTIATING")

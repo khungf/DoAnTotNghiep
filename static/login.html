@@ -17,14 +17,17 @@ body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f
 label { display: block; font-size: 13px; font-weight: 600; color: #4b5563; margin-bottom: 6px; }
 input { width: 100%; padding: 12px 14px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 16px; margin-bottom: 14px; background: #fff; }
 input:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
+input.code { text-align: center; letter-spacing: 8px; font-size: 24px; font-weight: bold; }
 .btn { width: 100%; border: none; border-radius: 12px; padding: 13px; font-size: 16px; font-weight: bold; color: #fff; cursor: pointer; background: #dc2626; }
 .btn.blue { background: #2563eb; }
 .btn.grey { background: #6b7280; margin-top: 8px; }
 .btn:disabled { opacity: .6; cursor: not-allowed; }
 .error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 14px; }
+.devbox { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 12px; border-radius: 10px; font-size: 14px; margin-bottom: 14px; }
 .hidden { display: none; }
 .hint { font-size: 12px; color: #6b7280; margin-top: -8px; margin-bottom: 14px; }
 .who { font-size: 15px; margin-bottom: 12px; }
+.sent { font-size: 14px; margin-bottom: 14px; color: #374151; }
 .footer { text-align: center; padding: 12px; background: #e5e7eb; font-size: 13px; color: #374151; }
 .footer b.ok { color: #16a34a; }
 .footer b.err { color: #dc2626; }
@@ -46,14 +49,27 @@ input:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
         </div>
 
         <div class="card" id="loginCard">
-            <h2>Đăng nhập</h2>
+            <h2>Đăng nhập / Đăng ký</h2>
             <div class="error hidden" id="errorBox"></div>
-            <label for="phoneInput">Số điện thoại</label>
-            <input type="tel" id="phoneInput" inputmode="numeric" placeholder="Ví dụ: 0901234567" autocomplete="tel">
-            <label for="nameInput">Tên hiển thị (không bắt buộc)</label>
-            <input type="text" id="nameInput" placeholder="Ví dụ: Hùng" maxlength="40">
-            <div class="hint">Số điện thoại mới sẽ được tự động đăng ký.</div>
-            <button class="btn" id="loginBtn" onclick="doLogin()">Vào App</button>
+
+            <div id="stepPhone">
+                <label for="phoneInput">Số điện thoại</label>
+                <input type="tel" id="phoneInput" inputmode="numeric" placeholder="Ví dụ: 0901234567" autocomplete="tel">
+                <label for="nameInput">Tên hiển thị (không bắt buộc)</label>
+                <input type="text" id="nameInput" placeholder="Ví dụ: Hùng" maxlength="40">
+                <div class="hint">Số điện thoại mới sẽ được tự động đăng ký sau khi xác nhận mã.</div>
+                <button class="btn" id="sendBtn" onclick="sendCode()">Gửi mã xác nhận</button>
+            </div>
+
+            <div class="hidden" id="stepCode">
+                <div class="sent" id="sentInfo"></div>
+                <div class="devbox hidden" id="devBox"></div>
+                <label for="codeInput">Mã xác nhận (6 số)</label>
+                <input type="text" id="codeInput" class="code" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code">
+                <button class="btn" id="verifyBtn" onclick="verifyCode()">Xác nhận và vào App</button>
+                <button class="btn grey" id="resendBtn" onclick="resendCode()" disabled>Gửi lại mã</button>
+                <button class="btn grey" onclick="backToPhone()">Đổi số điện thoại</button>
+            </div>
         </div>
     </div>
 
@@ -64,6 +80,9 @@ input:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
 const API = window.location.origin;
 const APP_URL = "/static/index.html";
 const $ = id => document.getElementById(id);
+
+let phone = "";
+let timer = null;
 
 function showError(text) {
     const box = $("errorBox");
@@ -76,9 +95,130 @@ function goApp() {
 }
 
 function switchAccount() {
-    ["user_id", "phone", "name", "active_sos_id"].forEach(k => sessionStorage.removeItem(k));
+    ["user_id", "phone", "email", "name", "token", "active_sos_id"].forEach(k => sessionStorage.removeItem(k));
     $("continueCard").classList.add("hidden");
     $("phoneInput").focus();
+}
+
+async function callApi(path, body) {
+    const res = await fetch(API + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) {
+        const detail = typeof data.detail === "string" ? data.detail : "Máy chủ từ chối yêu cầu (" + res.status + ")";
+        throw new Error(detail);
+    }
+    return data;
+}
+
+function friendlyError(e) {
+    return e.message.includes("Failed to fetch") ? "Không kết nối được Server. Hãy kiểm tra server đã chạy chưa." : e.message;
+}
+
+function startCountdown(seconds) {
+    clearInterval(timer);
+    const btn = $("resendBtn");
+    let left = seconds;
+    btn.disabled = true;
+    btn.textContent = `Gửi lại mã (${left}s)`;
+    timer = setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.textContent = "Gửi lại mã";
+        } else {
+            btn.textContent = `Gửi lại mã (${left}s)`;
+        }
+    }, 1000);
+}
+
+async function requestCode() {
+    showError("");
+    const value = $("phoneInput").value.replace(/[\s.\-]/g, "");
+    if (!/^\d{9,11}$/.test(value)) {
+        showError("Số điện thoại không hợp lệ. Hãy nhập 9 đến 11 chữ số.");
+        $("phoneInput").focus();
+        return false;
+    }
+    try {
+        const data = await callApi("/api/auth/request-otp", { phone: value });
+        phone = value;
+        $("sentInfo").textContent = `Mã xác nhận đã được gửi tới ${value}. Mã có hiệu lực ${Math.round(data.expires_in / 60)} phút.`;
+        const devBox = $("devBox");
+        if (data.dev_code) {
+            devBox.textContent = `Chế độ thử nghiệm - mã của bạn: ${data.dev_code}`;
+            devBox.classList.remove("hidden");
+        } else {
+            devBox.classList.add("hidden");
+        }
+        $("stepPhone").classList.add("hidden");
+        $("stepCode").classList.remove("hidden");
+        $("codeInput").value = "";
+        $("codeInput").focus();
+        startCountdown(data.cooldown || 60);
+        return true;
+    } catch (e) {
+        showError(friendlyError(e));
+        return false;
+    }
+}
+
+async function sendCode() {
+    const btn = $("sendBtn");
+    btn.disabled = true;
+    btn.textContent = "Đang gửi mã...";
+    await requestCode();
+    btn.disabled = false;
+    btn.textContent = "Gửi mã xác nhận";
+}
+
+async function resendCode() {
+    $("resendBtn").disabled = true;
+    await requestCode();
+}
+
+function backToPhone() {
+    clearInterval(timer);
+    showError("");
+    $("stepCode").classList.add("hidden");
+    $("stepPhone").classList.remove("hidden");
+    $("phoneInput").focus();
+}
+
+async function verifyCode() {
+    showError("");
+    const code = $("codeInput").value.trim();
+    if (!/^\d{6}$/.test(code)) {
+        showError("Mã xác nhận gồm đúng 6 chữ số.");
+        $("codeInput").focus();
+        return;
+    }
+    const btn = $("verifyBtn");
+    btn.disabled = true;
+    btn.textContent = "Đang xác nhận...";
+    try {
+        const data = await callApi("/api/auth/verify-otp", {
+            phone,
+            code,
+            name: $("nameInput").value.trim()
+        });
+        sessionStorage.setItem("user_id", data.user_id);
+        sessionStorage.setItem("phone", data.phone);
+        sessionStorage.setItem("name", data.name || "ThanhVien");
+        sessionStorage.setItem("token", data.token);
+        if (data.email) sessionStorage.setItem("email", data.email); else sessionStorage.removeItem("email");
+        sessionStorage.removeItem("active_sos_id");
+        goApp();
+    } catch (e) {
+        showError(friendlyError(e));
+        btn.disabled = false;
+        btn.textContent = "Xác nhận và vào App";
+    }
 }
 
 async function checkHealth() {
@@ -93,34 +233,6 @@ async function checkHealth() {
     }
 }
 
-async function doLogin() {
-    showError("");
-    const phone = $("phoneInput").value.replace(/[\s.\-]/g, "");
-    const name = $("nameInput").value.trim() || "ThanhVien";
-    if (!/^\d{9,11}$/.test(phone)) {
-        showError("Số điện thoại không hợp lệ. Hãy nhập 9 đến 11 chữ số.");
-        $("phoneInput").focus();
-        return;
-    }
-    const btn = $("loginBtn");
-    btn.disabled = true;
-    btn.textContent = "Đang đăng nhập...";
-    try {
-        const res = await fetch(`${API}/api/users?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}&role=unified`, { method: "POST" });
-        if (!res.ok) throw new Error("Máy chủ từ chối đăng nhập (" + res.status + ")");
-        const data = await res.json();
-        sessionStorage.setItem("user_id", data.user_id);
-        sessionStorage.setItem("phone", data.phone);
-        sessionStorage.setItem("name", data.name || name);
-        sessionStorage.removeItem("active_sos_id");
-        goApp();
-    } catch (e) {
-        showError(e.message.includes("Failed to fetch") ? "Không kết nối được Server. Hãy kiểm tra server đã chạy chưa." : e.message);
-        btn.disabled = false;
-        btn.textContent = "Vào App";
-    }
-}
-
 window.onload = function() {
     checkHealth();
     const uid = sessionStorage.getItem("user_id");
@@ -128,7 +240,8 @@ window.onload = function() {
         $("continueWho").textContent = `${sessionStorage.getItem("name") || "Thành viên"} - SĐT ${sessionStorage.getItem("phone") || ""} (ID: ${uid})`;
         $("continueCard").classList.remove("hidden");
     }
-    ["phoneInput", "nameInput"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); }));
+    ["phoneInput", "nameInput"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") sendCode(); }));
+    $("codeInput").addEventListener("keydown", e => { if (e.key === "Enter") verifyCode(); });
     $("phoneInput").focus();
 };
 </script>

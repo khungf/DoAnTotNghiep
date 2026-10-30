@@ -1,0 +1,211 @@
+import os
+import re
+import hmac
+import hashlib
+import secrets
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from . import models
+from .database import get_db
+from .mailer import send_email, MailError
+
+router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
+DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
+
+OTP_TTL_MINUTES = 5
+RESEND_COOLDOWN_SECONDS = 60
+MAX_ATTEMPTS = 5
+TOKEN_DAYS = 7
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+PHONE_RE = re.compile(r"^\d{9,11}$")
+
+class PhoneRequest(BaseModel):
+    phone: str
+
+class PhoneVerify(BaseModel):
+    phone: str
+    code: str
+    name: str = ""
+
+class EmailRequest(BaseModel):
+    email: str
+
+class EmailVerify(BaseModel):
+    email: str
+    code: str
+
+def normalize_phone(value: str) -> str:
+    phone = re.sub(r"[\s.\-]", "", value)
+    if not PHONE_RE.match(phone):
+        raise HTTPException(status_code=400, detail="Số điện thoại không hợp lệ. Hãy nhập 9 đến 11 chữ số.")
+    return phone
+
+def normalize_email(value: str) -> str:
+    email = value.strip().lower()
+    if not EMAIL_RE.match(email):
+        raise HTTPException(status_code=400, detail="Email không hợp lệ!")
+    return email
+
+def hash_code(target: str, code: str) -> str:
+    return hmac.new(SECRET_KEY.encode(), f"{target}:{code}".encode(), hashlib.sha256).hexdigest()
+
+def make_token(user_id: int) -> str:
+    expires = int((datetime.utcnow() + timedelta(days=TOKEN_DAYS)).timestamp())
+    payload = f"{user_id}.{expires}"
+    signature = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return f"{payload}.{signature}"
+
+def read_token(token: str):
+    try:
+        user_id, expires, signature = token.split(".")
+        expected = hmac.new(SECRET_KEY.encode(), f"{user_id}.{expires}".encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            return None
+        if int(expires) < int(datetime.utcnow().timestamp()):
+            return None
+        return int(user_id)
+    except ValueError:
+        return None
+
+def get_current_user(authorization: str = Header(default=""), db: Session = Depends(get_db)):
+    scheme, _, token = authorization.partition(" ")
+    user_id = read_token(token) if scheme.lower() == "bearer" else None
+    user = db.get(models.User, user_id) if user_id else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Phiên đăng nhập không hợp lệ, hãy đăng nhập lại!")
+    return user
+
+def send_sms(phone: str, code: str):
+    if DEV_MODE:
+        print(f"[DEV] OTP cho {phone}: {code}")
+        return
+    raise HTTPException(status_code=503, detail="Chưa cấu hình dịch vụ gửi SMS!")
+
+def email_sender(email: str):
+    def send(code: str):
+        html = (
+            "<p>Mã xác nhận liên kết email của bạn là:</p>"
+            f"<h2 style='letter-spacing:4px'>{code}</h2>"
+            f"<p>Mã có hiệu lực trong {OTP_TTL_MINUTES} phút. Không chia sẻ mã này cho bất kỳ ai.</p>"
+        )
+        try:
+            send_email(email, f"Mã xác nhận P2P SOS: {code}", html)
+        except MailError as e:
+            raise HTTPException(status_code=503, detail=str(e))
+    return send
+
+def issue_otp(db: Session, target: str, sender):
+    now = datetime.utcnow()
+    last = db.query(models.OtpCode).filter(models.OtpCode.target == target).order_by(models.OtpCode.id.desc()).first()
+    if last:
+        elapsed = (now - last.created_at).total_seconds()
+        if elapsed < RESEND_COOLDOWN_SECONDS:
+            wait = int(RESEND_COOLDOWN_SECONDS - elapsed) + 1
+            raise HTTPException(status_code=429, detail=f"Vui lòng đợi {wait} giây rồi gửi lại mã!")
+
+    code = f"{secrets.randbelow(1000000):06d}"
+    sender(code)
+
+    db.query(models.OtpCode).filter(models.OtpCode.target == target).delete()
+    db.add(models.OtpCode(
+        target=target,
+        code_hash=hash_code(target, code),
+        expires_at=now + timedelta(minutes=OTP_TTL_MINUTES),
+    ))
+    db.commit()
+
+    result = {
+        "message": "Đã gửi mã xác nhận!",
+        "cooldown": RESEND_COOLDOWN_SECONDS,
+        "expires_in": OTP_TTL_MINUTES * 60,
+    }
+    if DEV_MODE:
+        result["dev_code"] = code
+    return result
+
+def check_otp(db: Session, target: str, code: str):
+    record = db.query(models.OtpCode).filter(
+        models.OtpCode.target == target,
+        models.OtpCode.used == False
+    ).order_by(models.OtpCode.id.desc()).first()
+
+    if not record:
+        raise HTTPException(status_code=400, detail="Bạn chưa yêu cầu mã, hãy bấm gửi mã trước!")
+    if record.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Mã đã hết hạn, hãy gửi lại mã mới!")
+    if record.attempts >= MAX_ATTEMPTS:
+        raise HTTPException(status_code=429, detail="Nhập sai quá nhiều lần, hãy gửi lại mã mới!")
+
+    record.attempts += 1
+    if not hmac.compare_digest(record.code_hash, hash_code(target, code.strip())):
+        db.commit()
+        left = MAX_ATTEMPTS - record.attempts
+        raise HTTPException(status_code=400, detail=f"Mã không đúng! Bạn còn {left} lần thử.")
+
+    record.used = True
+
+@router.post("/request-otp")
+def request_login_otp(body: PhoneRequest, db: Session = Depends(get_db)):
+    phone = normalize_phone(body.phone)
+    return issue_otp(db, phone, lambda code: send_sms(phone, code))
+
+@router.post("/verify-otp")
+def verify_login_otp(body: PhoneVerify, db: Session = Depends(get_db)):
+    phone = normalize_phone(body.phone)
+    check_otp(db, phone, body.code)
+
+    user = db.query(models.User).filter(models.User.phone == phone).first()
+    if not user:
+        user = models.User(phone=phone, name=body.name.strip() or "ThanhVien", role="unified", is_verified=True)
+        db.add(user)
+    else:
+        user.is_verified = True
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "user_id": user.id,
+        "phone": user.phone,
+        "email": user.email,
+        "name": user.name,
+        "role": user.role,
+        "token": make_token(user.id),
+    }
+
+@router.get("/me")
+def get_me(user: models.User = Depends(get_current_user)):
+    return {"user_id": user.id, "phone": user.phone, "email": user.email, "name": user.name}
+
+@router.post("/email/request")
+def request_email_otp(body: EmailRequest, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    email = normalize_email(body.email)
+    owner = db.query(models.User).filter(models.User.email == email).first()
+    if owner and owner.id != user.id:
+        raise HTTPException(status_code=409, detail="Email này đã được liên kết với tài khoản khác!")
+    return issue_otp(db, email, email_sender(email))
+
+@router.post("/email/verify")
+def verify_email_otp(body: EmailVerify, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    email = normalize_email(body.email)
+    owner = db.query(models.User).filter(models.User.email == email).first()
+    if owner and owner.id != user.id:
+        raise HTTPException(status_code=409, detail="Email này đã được liên kết với tài khoản khác!")
+
+    check_otp(db, email, body.code)
+    user.email = email
+    db.commit()
+    return {"message": "Đã liên kết email nhận thông báo!", "email": email}
+
+@router.delete("/email")
+def unlink_email(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user.email = None
+    db.commit()
+    return {"message": "Đã gỡ email!"}
