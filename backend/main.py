@@ -1,3 +1,4 @@
+from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -7,10 +8,11 @@ from sqlalchemy.orm import Session
 from math import radians, sin, cos, sqrt, atan2
 from pydantic import BaseModel
 
-from backend import models
-from .database import Base
+from . import models, database
 
 database.init_db()
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 app = FastAPI(title="P2P Emergency Rescue Platform", version="1.6")
 
@@ -22,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 CHAT_STATUSES = ("WAITING_APPROVAL", "CHATTING", "NEGOTIATING")
 IGNORED_ORDERS = {}
