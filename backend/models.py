@@ -10,14 +10,13 @@ class User(Base):
     name = Column(String)
     role = Column(String, default="unified")
     is_verified = Column(Boolean, default=False)
-    
-    # Xác minh thợ & eKYC
+
     vehicle_info = Column(String, nullable=True)
     vehicle_photo = Column(String, nullable=True)
     cert_photo = Column(String, nullable=True)
     verification_status = Column(String, default="NONE")
+    verification_note = Column(String, nullable=True)
 
-    # Live Tracking thợ
     current_lat = Column(Float, nullable=True)
     current_lon = Column(Float, nullable=True)
 
@@ -38,7 +37,7 @@ class SOSRequest(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     issue_type = Column(String, nullable=False)
     proposed_price = Column(Float, nullable=False)
-    status = Column(String, default="PENDING") 
+    status = Column(String, default="PENDING")
     helper_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     agreed_price = Column(Float, nullable=True)
 
@@ -75,4 +74,11 @@ class UserReport(Base):
     reported_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     sos_id = Column(Integer, ForeignKey("sos_requests.id"), nullable=True)
     reason = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class IgnoredOrder(Base):
+    __tablename__ = "ignored_orders"
+    id = Column(Integer, primary_key=True, index=True)
+    sos_id = Column(Integer, ForeignKey("sos_requests.id"), index=True, nullable=False)
+    helper_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

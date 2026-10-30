@@ -1,10 +1,12 @@
 import os
 import json
+import html as html_lib
 import urllib.request
 import urllib.error
 from sqlalchemy.orm import Session
 
 from . import models
+from .database import SessionLocal
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 MAIL_SENDER = os.getenv("MAIL_SENDER", "")
@@ -46,3 +48,15 @@ def notify_user(db: Session, user_id: int, subject: str, html: str) -> bool:
         return True
     except MailError:
         return False
+
+def notify_in_background(user_id, subject: str, message: str):
+    if not user_id:
+        return
+    db = SessionLocal()
+    try:
+        body = f"<p>{html_lib.escape(message)}</p><p>Mở ứng dụng P2P SOS để xem chi tiết.</p>"
+        notify_user(db, user_id, subject, body)
+    except Exception as e:
+        print(f"[MAIL] Lỗi gửi thông báo: {e}")
+    finally:
+        db.close()
