@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="/static/manifest.json">
-<title>P2P SOS Unified</title>
+<title>P2P SOS Unified Platform</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -13,45 +13,32 @@ body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f
 .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #f8f9fc; display: flex; flex-direction: column; }
 .header { background: linear-gradient(90deg, #dc2626, #f97316); color: #fff; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
 .header-left { display: flex; align-items: center; gap: 10px; }
-.header h1 { margin: 0; font-size: 20px; }
-.gear-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #fff; font-size: 18px; }
+.header h1 { margin: 0; font-size: 18px; }
+.btn-lang { background: rgba(255,255,255,0.25); border: 1px solid #fff; color: #fff; padding: 4px 8px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
 
 .tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; }
-.tab { flex: 1; padding: 13px 8px; border: none; background: #fff; font-size: 14px; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; }
-.tab.active { color: #dc2626; font-weight: bold; border-bottom-color: #dc2626; background: #fff; }
+.tab { flex: 1; padding: 12px 6px; border: none; background: #fff; font-size: 13px; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; }
+.tab.active { color: #dc2626; font-weight: bold; border-bottom-color: #dc2626; }
+
 .content { padding: 14px; flex: 1; }
 .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
 .card.danger { background: #fff1f1; border-color: #fecaca; }
-.card.wait { background: #fff7ed; border-color: #fdba74; text-align: center; }
-.card h3 { margin: 0 0 10px; font-size: 16px; }
-.row { display: flex; gap: 10px; align-items: center; }
-.muted { font-size: 12px; color: #6b7280; font-weight: 600; }
-.link { color: #2563eb; font-weight: bold; font-size: 13px; cursor: pointer; background: none; border: none; }
-input, select { width: 100%; padding: 11px 14px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 15px; background: #fff; margin-bottom: 8px; }
-.btn { width: 100%; border: none; border-radius: 12px; padding: 12px; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; }
-.btn.red { background: #dc2626; font-size: 17px; padding: 14px; }
+.card h3 { margin: 0 0 10px; font-size: 15px; }
+
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.dash-item { background: #f3f4f6; padding: 10px; border-radius: 10px; text-align: center; }
+.dash-item .num { font-size: 18px; font-weight: bold; color: #dc2626; }
+
+input, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; margin-bottom: 8px; }
+.btn { width: 100%; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: bold; color: #fff; cursor: pointer; }
+.btn.red { background: #dc2626; }
 .btn.blue { background: #2563eb; }
-.btn.orange { background: #f59e0b; }
 .btn.green { background: #16a34a; }
 .btn.grey { background: #6b7280; }
-.btn.small { width: auto; padding: 8px 12px; font-size: 13px; white-space: nowrap; }
-.empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 15px; }
-.notice { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; padding: 10px 12px; border-radius: 12px; font-size: 14px; margin-bottom: 14px; }
-.chat-card { border: 2px solid #93c5fd; background: #eff6ff; }
-.chat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.approval-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 12px; margin-bottom: 10px; border-radius: 12px; text-align: center; font-size: 14px; }
-.chat-box { height: 200px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 12px; padding: 8px; margin-bottom: 8px; font-size: 14px; }
-.msg { margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid #f3f4f6; }
-.msg .time { float: right; font-size: 11px; color: #9ca3af; }
-.switch-container { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e5e7eb; padding: 14px 16px; border-radius: 14px; margin-bottom: 14px; }
-.switch { position: relative; display: inline-block; width: 56px; height: 30px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 30px; }
-.slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-input:checked + .slider { background-color: #16a34a; }
-input:checked + .slider:before { transform: translateX(26px); }
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-.modal-content { background: #fff; width: 92%; max-width: 450px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+.btn.small { width: auto; padding: 6px 10px; font-size: 12px; }
+
+.chat-box { height: 180px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 10px; padding: 8px; margin-bottom: 8px; font-size: 13px; }
+.msg { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #f3f4f6; }
 .hidden { display: none !important; }
 </style>
 </head>
@@ -59,88 +46,85 @@ input:checked + .slider:before { transform: translateX(26px); }
 <div class="app">
     <div class="header">
         <div class="header-left">
-            <button class="gear-btn" onclick="logout()" title="Đăng xuất">⎋</button>
-            <h1>🚨 P2P SOS Unified</h1>
+            <h1 id="appTitle">🚨 P2P SOS Rescue</h1>
         </div>
-        <span class="muted" id="onlineBadge" style="color:#fff;">Offline</span>
-    </div>
-
-    <!-- Tính năng 4: Hiển thị nút số khẩn cấp 113, 115 trên giao diện chính -->
-    <div class="card" style="background: #fef2f2; border-color: #fca5a5; text-align: center; margin: 14px 14px 0 14px;">
-        <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 14px;">🚨 SỐ ĐIỆN THOẠI KHẨN CẤP</div>
-        <div style="display: flex; gap: 10px; justify-content: center;">
-            <a href="tel:113" class="btn red" style="padding: 8px; font-size: 13px;">📞 113 (Công an)</a>
-            <a href="tel:115" class="btn orange" style="padding: 8px; font-size: 13px; background: #0284c7;">🚑 115 (Cấp cứu)</a>
+        <div>
+            <button class="btn-lang" onclick="toggleLanguage()" id="langBtn">EN</button>
+            <button class="btn-lang" onclick="logout()">⎋</button>
         </div>
     </div>
 
-    <div class="tabs" style="margin-top: 14px;">
-        <button class="tab active" id="tabVictim" onclick="switchTab('victim')">⚠️ Chế Độ Gặp Nạn</button>
-        <button class="tab" id="tabHelper" onclick="switchTab('helper')">📍 Chế Độ Thợ</button>
+    <!-- Nút Số điện thoại Khẩn cấp -->
+    <div class="card" style="background: #fef2f2; border-color: #fca5a5; text-align: center; margin: 12px 14px 0 14px;">
+        <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 13px;" data-i18n="emergency_call">🚨 SỐ KHẨN CẤP</div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+            <a href="tel:113" class="btn red" style="padding: 6px; font-size: 12px; text-decoration: none;">📞 113 (Công an)</a>
+            <a href="tel:115" class="btn blue" style="padding: 6px; font-size: 12px; text-decoration: none; background: #0284c7;">🚑 115 (Cấp cứu)</a>
+        </div>
+    </div>
+
+    <div class="tabs" style="margin-top: 10px;">
+        <button class="tab active" id="tabVictim" onclick="switchTab('victim')" data-i18n="tab_victim">⚠️ Gặp Nạn</button>
+        <button class="tab" id="tabHelper" onclick="switchTab('helper')" data-i18n="tab_helper">📍 Thợ Cứu Hộ</button>
+        <button class="tab" id="tabServices" onclick="switchTab('services')" data-i18n="tab_services">🗺️ Cây Xăng/Tiệm Xe</button>
     </div>
 
     <div class="content">
-        <div class="notice hidden" id="noticeBox"></div>
-        <div class="card wait hidden" id="waitCard"></div>
-
+        <!-- CHẾ ĐỘ NẠN NHÂN -->
         <div id="victimPanel">
             <div class="card danger">
-                <h3>⚠️ Bạn đang gặp sự cố trên đường?</h3>
-                <input type="text" id="issueInput" placeholder="Mô tả sự cố (hết xăng, thủng lốp...)">
-                <input type="number" id="priceInput" placeholder="Giá đề xuất ban đầu (VNĐ)" value="50000">
-                <button class="btn red" id="sosBtn" onclick="sendSOS()">Phát Tín Hiệu Khẩn Cấp 🚨</button>
+                <h3 data-i18n="sos_prompt">⚠️ Phát Tín Hiệu SOS Khẩn Cấp</h3>
+                <input type="text" id="issueInput" placeholder="Mô tả sự cố (hết xăng, thủng lốp...)" data-i18n-ph="ph_issue">
+                <input type="number" id="priceInput" placeholder="Giá đề xuất (VNĐ)" value="50000">
+                <button class="btn red" onclick="sendSOS()" data-i18n="btn_sos">GỬI TÍN HIỆU SOS 🚨</button>
+            </div>
+
+            <!-- Tính năng 3: Gửi vị trí GPS cho Thân nhân -->
+            <div class="card">
+                <h3 data-i18n="emergency_contacts_title">🛡️ Khẩn Cấp Thân Nhân</h3>
+                <input type="text" id="contactsInput" placeholder="SĐT thân nhân (VD: 0901234567)">
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn blue small" onclick="saveContacts()" data-i18n="btn_save">Lưu SĐT</button>
+                    <button class="btn red small" onclick="sendToRelatives()" data-i18n="btn_send_relatives">Gửi GPS Cho Thân Nhân 📲</button>
+                </div>
             </div>
         </div>
 
+        <!-- CHẾ ĐỘ THỢ CỨU HỘ & DASHBOARD -->
         <div id="helperPanel" class="hidden">
-            <div class="switch-container">
-                <div>
-                    <div style="font-weight: bold; font-size: 15px;" id="statusLabelText">Trạng thái: Đang ngưng</div>
-                    <div class="muted">Gạt công tắc để nhận đơn quanh bạn</div>
+            <div class="card">
+                <h3 data-i18n="dashboard_title">📊 Dashboard Thống Kê Thu Nhập</h3>
+                <div class="dash-grid">
+                    <div class="dash-item"><div class="num" id="dashCompleted">0</div><div style="font-size:11px;" data-i18n="dash_completed">Cuốc Hoàn Thành</div></div>
+                    <div class="dash-item"><div class="num" id="dashEarnings">0 đ</div><div style="font-size:11px;" data-i18n="dash_earnings">Tổng Thu Nhập</div></div>
                 </div>
-                <label class="switch">
-                    <input type="checkbox" id="workToggle" onchange="toggleWorkStatus()">
-                    <span class="slider"></span>
-                </label>
+                <div style="font-size: 12px; text-align: center;">Đánh giá trung bình: <b id="dashRating">5.0 ⭐</b></div>
             </div>
+
             <div class="card" style="text-align: center;">
-                <h3>📡 Radar quét đơn cứu hộ</h3>
-                <div id="radarStatusText" style="color: #dc2626; font-weight: bold; margin-top: 10px;">🔴 Đang ngưng hoạt động</div>
+                <h3 data-i18n="radar_title">📡 Radar Quét Đơn</h3>
+                <div id="radarText" style="color:#dc2626; font-weight:bold;">🔴 Đang Tắt</div>
+                <button class="btn green" style="margin-top:10px;" onclick="toggleRadar()" id="btnRadar">Bật Sẵn Sàng Nhận Đơn</button>
             </div>
         </div>
 
-        <!-- POPUP NỔ ĐƠN CHO THỢ -->
-        <div class="modal-overlay hidden" id="orderModal">
-            <div class="modal-content" style="text-align: center;">
-                <h3 style="color: #dc2626;">🔔 NỔ ĐƠN CỨU HỘ MỚI!</h3>
-                <div id="modalBody" style="font-size: 15px; margin: 10px 0;"></div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn grey" onclick="ignoreOrder()">Bỏ qua</button>
-                    <button class="btn green" onclick="acceptDispatchedOrder()">Nhận Cuốc ✅</button>
-                </div>
+        <!-- CÂY XĂNG & TIỆM SỬA XE GẦN NHẤT -->
+        <div id="servicesPanel" class="hidden">
+            <div class="card">
+                <h3 data-i18n="nearby_title">🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn</h3>
+                <button class="btn blue small" onclick="loadNearbyServices()" style="margin-bottom:10px;" data-i18n="btn_scan_nearby">Quét Địa Điểm Gần Nhất 🔍</button>
+                <div id="servicesList"><div style="color:#9ca3af; font-size:12px; text-align:center;">Bấm nút để tìm cây xăng hoặc tiệm xe gần bạn.</div></div>
             </div>
         </div>
 
-        <!-- KHUNG CHAT & THƯƠNG LƯỢNG -->
-        <div class="card chat-card hidden" id="chatSection">
-            <div id="mapContainer" class="hidden">
-                <div id="map" style="height: 160px; border-radius: 12px; margin-bottom: 10px;"></div>
-            </div>
-            <div class="chat-head">
-                <h3 id="chatTitle">💬 Khung chat</h3>
-                <a class="btn green small hidden" id="callBtn" href="#">📞 Gọi</a>
-            </div>
-            <div id="approvalSection"></div>
+        <!-- KHUNG CHAT & LIVE TRACKING BẢN ĐỒ -->
+        <div class="card hidden" id="chatSection">
+            <div id="map" style="height: 160px; border-radius: 10px; margin-bottom: 10px;"></div>
+            <h3 id="chatTitle">💬 Khung Chat & Thương Lượng</h3>
             <div class="chat-box" id="chatContainer"></div>
-            <div class="row" id="chatInputRow">
-                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') sendChat()">
-                <button class="btn blue small" onclick="sendChat()">Gửi</button>
-            </div>
-
-            <!-- Tính năng 3 & 4: Nút Hủy đơn (có lý do) & Nút Báo cáo an toàn -->
-            <div style="margin-top: 10px; display: flex; gap: 8px;">
-                <button class="btn grey small" onclick="openCancelModal()" style="background: #6b7280;">🚫 Hủy đơn</button>
-                <button class="btn grey small" onclick="openReportModal()" style="background: #b91c1c;">⚠️ Báo cáo / An toàn</button>
+            <div style="display:flex; gap:6px;">
+                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." style="margin-bottom:0;">
+                <button class="btn blue small" onclick="sendChat()" data-i18n="btn_send">Gửi</button>
             </div>
         </div>
     </div>
@@ -148,165 +132,110 @@ input:checked + .slider:before { transform: translateX(26px); }
 
 <script>
 const API = window.location.origin;
-let currentTab = "victim";
-let pollTimer = null;
-let radarTimer = null;
+let currentLang = "VI";
 let activeSosId = null;
-let currentIncomingSosId = null;
 let mapInstance = null, markerInstance = null;
+let trackingInterval = null;
+let isRadarOn = false;
 
-if (!sessionStorage.getItem("user_id")) { window.location.replace("/static/login.html"); }
-const $ = id => document.getElementById(id);
-const money = n => Number(n).toLocaleString("vi-VN");
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-async function api(path, options) {
-    const opts = Object.assign({}, options);
-    opts.headers = Object.assign({ "Authorization": "Bearer " + (sessionStorage.getItem("token") || "") }, opts.headers);
-    const res = await fetch(API + path, opts);
-    let body = null;
-    try { body = await res.json(); } catch (e) {}
-    if (!res.ok) throw new Error(body?.detail || "Lỗi " + res.status);
-    return body;
-}
-
-function switchTab(mode) {
-    currentTab = mode;
-    $("victimPanel").classList.toggle("hidden", mode !== "victim");
-    $("helperPanel").classList.toggle("hidden", mode !== "helper");
-    $("tabVictim").classList.toggle("active", mode === "victim");
-    $("tabHelper").classList.toggle("active", mode === "helper");
-    if (activeSosId) refreshChat();
-}
-
-function toggleWorkStatus() {
-    localStorage.setItem("work_status", $("workToggle").checked ? "ON" : "OFF");
-    updateHelperStatusUI();
-}
-
-function updateHelperStatusUI() {
-    const isWorking = $("workToggle").checked;
-    $("radarStatusText").textContent = isWorking ? "🟢 Đang quét đơn cứu hộ..." : "🔴 Đang ngưng hoạt động";
-    $("radarStatusText").style.color = isWorking ? "#16a34a" : "#dc2626";
-}
-
-async function sendSOS() {
-    const issue = $("issueInput").value.trim();
-    const price = parseFloat($("priceInput").value);
-    if (!issue || !price) { alert("Vui lòng điền đủ thông tin!"); return; }
-    
-    let url = `/api/sos?issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            url += `&latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}`;
-            submitSOSRequest(url);
-        }, () => submitSOSRequest(url));
-    } else { submitSOSRequest(url); }
-}
-
-async function submitSOSRequest(url) {
-    try {
-        const data = await api(url, { method: "POST" });
-        openChat(data.sos_id);
-    } catch (e) { alert(e.message); }
-}
-
-async function backgroundRadarPoll() {
-    if (!activeSosId || !$("workToggle").checked) return;
-    try {
-        const data = await api("/api/helper/incoming-order");
-        if (data.has_order && currentIncomingSosId !== data.sos_id) {
-            currentIncomingSosId = data.sos_id;
-            $("modalBody").innerHTML = `Khách: <b>${esc(data.user_name)}</b><br>Sự cố: <b>${esc(data.issue_type)}</b><br>Giá: <b style="color:#dc2626;">${money(data.proposed_price)} VNĐ</b>`;
-            $("orderModal").classList.remove("hidden");
-        }
-    } catch (e) {}
-}
-
-async function ignoreOrder() {
-    $("orderModal").classList.add("hidden");
-    if (currentIncomingSosId) await api(`/api/sos/${currentIncomingSosId}/ignore`, { method: "PUT" });
-    currentIncomingSosId = null;
-}
-
-async function acceptDispatchedOrder() {
-    $("orderModal").classList.add("hidden");
-    const price = prompt("Nhập mức giá đề nghị (VNĐ):", "50000");
-    if (!price) return;
-    try {
-        await api(`/api/sos/${currentIncomingSosId}/negotiate?final_price=${price}`, { method: "PUT" });
-        openChat(currentIncomingSosId);
-    } catch (e) { alert(e.message); }
-    currentIncomingSosId = null;
-}
-
-async function openChat(sosId) {
-    activeSosId = Number(sosId);
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(refreshChat, 3000);
-    await refreshChat();
-}
-
-async function refreshChat() {
-    if (!activeSosId) return;
-    try {
-        const sos = await api(`/api/sos/${activeSosId}`);
-        const uid = parseInt(sessionStorage.getItem("user_id"));
-        const isOwner = sos.user_id === uid;
-        
-        $("chatSection").classList.remove("hidden");
-        $("chatTitle").textContent = `💬 Đơn #${sos.id} - Trạng thái: ${sos.status}`;
-        
-        const messages = await api(`/api/sos/${sos.id}/messages`);
-        $("chatContainer").innerHTML = messages.map(m => `<div class="msg"><b>${m.sender_id === uid ? 'Bạn' : 'Đối phương'}:</b> ${esc(m.content)}</div>`).join("");
-    } catch (e) { clearActive(); }
-}
-
-function clearActive() {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = null;
-    activeSosId = null;
-    $("chatSection").classList.add("hidden");
-}
-
-// Tính năng 3: Hủy đơn kèm lý do
-async function openCancelModal() {
-    const reason = prompt("Nhập lý do hủy đơn cứu hộ:");
-    if (!reason) return;
-    try {
-        await api(`/api/sos/${activeSosId}/cancel`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reason })
-        });
-        alert("Đã hủy đơn thành công.");
-        clearActive();
-    } catch (e) { alert(e.message); }
-}
-
-// Tính năng 4: Báo cáo an toàn
-async function openReportModal() {
-    const reason = prompt("Nhập nội dung báo cáo sự cố / an toàn:");
-    if (!reason) return;
-    try {
-        const res = await api(`/api/sos/${activeSosId}/report`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reason })
-        });
-        alert(res.message);
-    } catch (e) { alert(e.message); }
-}
-
-function logout() {
-    sessionStorage.clear();
-    window.location.replace("/static/login.html");
-}
-
-window.onload = () => {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(() => {});
-    radarTimer = setInterval(backgroundRadarPoll, 3000);
+// ĐA NGÔN NGỮ (VI - EN)
+const TRANSLATIONS = {
+    VI: {
+        appTitle: "🚨 P2P SOS Rescue", emergency_call: "🚨 SỐ KHẨN CẤP", tab_victim: "⚠️ Gặp Nạn", tab_helper: "📍 Thợ Cứu Hộ", tab_services: "🗺️ Cây Xăng/Tiệm Xe",
+        sos_prompt: "⚠️ Phát Tín Hiệu SOS Khẩn Cấp", ph_issue: "Mô tả sự cố (hết xăng, thủng lốp...)", btn_sos: "GỬI TÍN HIỆU SOS 🚨",
+        emergency_contacts_title: "🛡️ Khẩn Cấp Thân Nhân", btn_save: "Lưu SĐT", btn_send_relatives: "Gửi GPS Cho Thân Nhân 📲",
+        dashboard_title: "📊 Dashboard Thống Kê Thu Nhập", dash_completed: "Cuốc Hoàn Thành", dash_earnings: "Tổng Thu Nhập",
+        radar_title: "📡 Radar Quét Đơn", nearby_title: "🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn", btn_scan_nearby: "Quét Địa Điểm Gần Nhất 🔍", btn_send: "Gửi"
+    },
+    EN: {
+        appTitle: "🚨 P2P SOS Rescue", emergency_call: "🚨 EMERGENCY CALL", tab_victim: "⚠️ Victim Mode", tab_helper: "📍 Rescuer Mode", tab_services: "🗺️ Gas/Repair",
+        sos_prompt: "⚠️ Send Emergency SOS Signal", ph_issue: "Describe issue (out of gas, flat tire...)", btn_sos: "SEND SOS SIGNAL 🚨",
+        emergency_contacts_title: "🛡️ Emergency Contacts", btn_save: "Save Number", btn_send_relatives: "Send GPS to Family 📲",
+        dashboard_title: "📊 Earnings Dashboard", dash_completed: "Completed Jobs", dash_earnings: "Total Income",
+        radar_title: "📡 Order Radar", nearby_title: "🗺️ Nearby Gas Stations & Repair Shops", btn_scan_nearby: "Scan Nearby Places 🔍", btn_send: "Send"
+    }
 };
+
+function toggleLanguage() {
+    currentLang = currentLang === "VI" ? "EN" : "VI";
+    document.getElementById("langBtn").textContent = currentLang === "VI" ? "EN" : "VI";
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (TRANSLATIONS[currentLang][key]) el.textContent = TRANSLATIONS[currentLang][key];
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+        const key = el.getAttribute("data-i18n-ph");
+        if (TRANSLATIONS[currentLang][key]) el.placeholder = TRANSLATIONS[currentLang][key];
+    });
+}
+
+function switchTab(tab) {
+    document.getElementById("victimPanel").classList.toggle("hidden", tab !== "victim");
+    document.getElementById("helperPanel").classList.toggle("hidden", tab !== "helper");
+    document.getElementById("servicesPanel").classList.toggle("hidden", tab !== "services");
+    if (tab === 'helper') loadDashboard();
+}
+
+async function api(path, options = {}) {
+    options.headers = Object.assign({ "Authorization": "Bearer " + (sessionStorage.getItem("token") || ""), "Content-Type": "application/json" }, options.headers);
+    const res = await fetch(API + path, options);
+    return res.json();
+}
+
+// LIVE TRACKING: Cập nhật vị trí thợ di chuyển trên bản đồ
+function startLiveTracking(sosId) {
+    if (trackingInterval) clearInterval(trackingInterval);
+    trackingInterval = setInterval(async () => {
+        const data = await api(`/api/sos/${sosId}/helper-location`);
+        if (data.latitude && data.longitude) {
+            if (!mapInstance) {
+                mapInstance = L.map('map').setView([data.latitude, data.longitude], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+                markerInstance = L.marker([data.latitude, data.longitude]).addTo(mapInstance).bindPopup("Thợ đang tới!").openPopup();
+            } else {
+                markerInstance.setLatLng([data.latitude, data.longitude]);
+                mapInstance.setView([data.latitude, data.longitude]);
+            }
+        }
+    }, 4000);
+}
+
+// DỊCH VỤ GẦN NHẤT
+async function loadNearbyServices() {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const list = await api(`/api/nearby-services?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+        const box = document.getElementById("servicesList");
+        box.innerHTML = list.map(item => `
+            <div style="border-bottom:1px solid #eee; padding:8px 0;">
+                <b>${item.name}</b> (${item.address})<br>
+                SĐT: <a href="tel:${item.phone}" style="color:#2563eb; font-weight:bold;">${item.phone}</a>
+            </div>
+        `).join("");
+    });
+}
+
+// BÁO NGUY THÂN NHÂN
+async function saveContacts() {
+    const contacts = document.getElementById("contactsInput").value;
+    const res = await api("/api/user/emergency-contacts", { method: "POST", body: JSON.stringify({ contacts }) });
+    alert(res.message);
+}
+
+async function sendToRelatives() {
+    if (!activeSosId) { alert("Bạn cần phát SOS trước khi gửi!"); return; }
+    const res = await api(`/api/sos/${activeSosId}/notify-relatives`, { method: "POST" });
+    alert(res.message);
+}
+
+// DASHBOARD THỢ
+async function loadDashboard() {
+    const res = await api("/api/helper/dashboard");
+    document.getElementById("dashCompleted").textContent = res.total_completed;
+    document.getElementById("dashEarnings").textContent = Number(res.total_earnings).toLocaleString("vi-VN") + " đ";
+    document.getElementById("dashRating").textContent = res.average_rating + " ⭐";
+}
+
+function logout() { sessionStorage.clear(); window.location.replace("/static/login.html"); }
 </script>
 </body>
 </html>

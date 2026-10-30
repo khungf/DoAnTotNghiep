@@ -8,13 +8,25 @@ class User(Base):
     phone = Column(String, unique=True, index=True, nullable=True)
     email = Column(String, unique=True, index=True, nullable=True)
     name = Column(String)
-    role = Column(String, default="unified")
+    role = Column(String, default="unified") # unified, admin
     is_verified = Column(Boolean, default=False)
     
+    # Xác minh danh tính & CCCD (eKYC)
+    id_card_number = Column(String, nullable=True)
+    id_card_photo = Column(String, nullable=True)
     vehicle_info = Column(String, nullable=True)
     vehicle_photo = Column(String, nullable=True)
     cert_photo = Column(String, nullable=True)
-    verification_status = Column(String, default="NONE")
+    verification_status = Column(String, default="NONE") # NONE, PENDING, APPROVED, REJECTED
+
+    # An toàn & Thông báo
+    emergency_contacts = Column(String, nullable=True) # Lưu chuỗi các SĐT thân nhân (VD: "0901234567,0908765432")
+    fcm_token = Column(String, nullable=True)           # Token Push Notification
+    
+    # Tọa độ Live Tracking hiện tại của thợ
+    current_lat = Column(Float, nullable=True)
+    current_lon = Column(Float, nullable=True)
+    last_active = Column(DateTime, default=datetime.utcnow)
 
 class OtpCode(Base):
     __tablename__ = "otp_codes"
@@ -41,8 +53,8 @@ class SOSRequest(Base):
     longitude = Column(Float, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
     
-    # Tính năng 3: Lưu thông tin hủy đơn và lý do
     cancel_reason = Column(String, nullable=True)
     cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
@@ -55,6 +67,16 @@ class Message(Base):
     content = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
+class Review(Base):
+    __tablename__ = "reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    sos_id = Column(Integer, ForeignKey("sos_requests.id"))
+    reviewer_id = Column(Integer, ForeignKey("users.id"))
+    target_id = Column(Integer, ForeignKey("users.id"))
+    rating = Column(Integer, nullable=False)
+    comment = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class UserReport(Base):
     __tablename__ = "user_reports"
     id = Column(Integer, primary_key=True, index=True)
@@ -62,4 +84,5 @@ class UserReport(Base):
     reported_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     sos_id = Column(Integer, ForeignKey("sos_requests.id"), nullable=True)
     reason = Column(String, nullable=False)
+    status = Column(String, default="PENDING") # PENDING, RESOLVED
     created_at = Column(DateTime, default=datetime.utcnow)
