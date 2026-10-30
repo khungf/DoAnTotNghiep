@@ -8,25 +8,18 @@ class User(Base):
     phone = Column(String, unique=True, index=True, nullable=True)
     email = Column(String, unique=True, index=True, nullable=True)
     name = Column(String)
-    role = Column(String, default="unified") # unified, admin
+    role = Column(String, default="unified")
     is_verified = Column(Boolean, default=False)
     
-    # Xác minh danh tính & CCCD (eKYC)
-    id_card_number = Column(String, nullable=True)
-    id_card_photo = Column(String, nullable=True)
+    # Xác minh thợ & eKYC
     vehicle_info = Column(String, nullable=True)
     vehicle_photo = Column(String, nullable=True)
     cert_photo = Column(String, nullable=True)
-    verification_status = Column(String, default="NONE") # NONE, PENDING, APPROVED, REJECTED
+    verification_status = Column(String, default="NONE")
 
-    # An toàn & Thông báo
-    emergency_contacts = Column(String, nullable=True) # Lưu chuỗi các SĐT thân nhân (VD: "0901234567,0908765432")
-    fcm_token = Column(String, nullable=True)           # Token Push Notification
-    
-    # Tọa độ Live Tracking hiện tại của thợ
+    # Live Tracking thợ
     current_lat = Column(Float, nullable=True)
     current_lon = Column(Float, nullable=True)
-    last_active = Column(DateTime, default=datetime.utcnow)
 
 class OtpCode(Base):
     __tablename__ = "otp_codes"
@@ -45,7 +38,7 @@ class SOSRequest(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     issue_type = Column(String, nullable=False)
     proposed_price = Column(Float, nullable=False)
-    status = Column(String, default="PENDING") # PENDING, WAITING_APPROVAL, CHATTING, NEGOTIATING, COMPLETED, EXPIRED, CANCELLED
+    status = Column(String, default="PENDING") 
     helper_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     agreed_price = Column(Float, nullable=True)
 
@@ -53,8 +46,6 @@ class SOSRequest(Base):
     longitude = Column(Float, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
-    completed_at = Column(DateTime, nullable=True)
-    
     cancel_reason = Column(String, nullable=True)
     cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
@@ -84,5 +75,4 @@ class UserReport(Base):
     reported_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     sos_id = Column(Integer, ForeignKey("sos_requests.id"), nullable=True)
     reason = Column(String, nullable=False)
-    status = Column(String, default="PENDING") # PENDING, RESOLVED
     created_at = Column(DateTime, default=datetime.utcnow)

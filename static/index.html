@@ -14,11 +14,10 @@ body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f
 .header { background: linear-gradient(90deg, #dc2626, #f97316); color: #fff; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
 .header-left { display: flex; align-items: center; gap: 10px; }
 .header h1 { margin: 0; font-size: 20px; }
-.gear-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #fff; font-size: 18px; transition: background 0.2s; }
-.gear-btn:hover { background: rgba(255,255,255,0.35); }
+.gear-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #fff; font-size: 18px; }
 
 .tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; }
-.tab { flex: 1; padding: 13px 8px; border: none; background: #fff; font-size: 13px; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; }
+.tab { flex: 1; padding: 12px 4px; border: none; background: #fff; font-size: 12px; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; text-align: center; }
 .tab.active { color: #dc2626; font-weight: bold; border-bottom-color: #dc2626; background: #fff; }
 
 .content { padding: 14px; flex: 1; }
@@ -26,40 +25,24 @@ body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f
 .card.danger { background: #fff1f1; border-color: #fecaca; }
 .card.wait { background: #fff7ed; border-color: #fdba74; text-align: center; }
 .card h3 { margin: 0 0 10px; font-size: 16px; }
-.card.danger h3 { color: #b91c1c; }
 .row { display: flex; gap: 10px; align-items: center; }
 .muted { font-size: 12px; color: #6b7280; font-weight: 600; }
-.link { color: #2563eb; font-weight: bold; font-size: 13px; cursor: pointer; background: none; border: none; padding: 0; }
-.link-danger { color: #dc2626; font-weight: bold; font-size: 13px; cursor: pointer; background: none; border: none; text-decoration: underline; }
 input, select { width: 100%; padding: 11px 14px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 15px; background: #fff; margin-bottom: 8px; }
 .btn { width: 100%; border: none; border-radius: 12px; padding: 12px; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; }
-a.btn { display: inline-block; text-align: center; text-decoration: none; }
 .btn.red { background: #dc2626; font-size: 16px; padding: 14px; }
 .btn.blue { background: #2563eb; }
 .btn.orange { background: #f59e0b; }
 .btn.green { background: #16a34a; }
 .btn.grey { background: #6b7280; }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn.small { width: auto; padding: 8px 12px; font-size: 13px; white-space: nowrap; }
 .empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 15px; }
-.notice { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; padding: 10px 12px; border-radius: 12px; font-size: 14px; margin-bottom: 14px; }
 
 .chat-card { border: 2px solid #93c5fd; background: #eff6ff; }
-.chat-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 10px; }
-.chat-head h3 { margin: 0; font-size: 15px; }
-.chat-actions { display: flex; gap: 6px; align-items: center; }
+.chat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .approval-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 12px; margin-bottom: 10px; border-radius: 12px; text-align: center; font-size: 14px; }
-.approval-box.ok { background: #ecfdf5; border-color: #6ee7b7; }
-.approval-box.done { background: #f3f4f6; border-color: #d1d5db; }
-.approval-box .price { color: #dc2626; font-size: 18px; }
-.approval-box .hint { font-size: 12px; color: #6b7280; margin-top: 8px; }
-.approval-actions { display: flex; gap: 10px; margin-top: 10px; }
-.chat-box { height: 200px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 12px; padding: 8px; margin-bottom: 8px; font-size: 14px; }
-.msg { margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid #f3f4f6; }
-.msg .time { float: right; font-size: 11px; color: #9ca3af; }
-.msg.me b { color: #2563eb; }
+.chat-box { height: 180px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 12px; padding: 8px; margin-bottom: 8px; font-size: 13px; }
+.msg { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #f3f4f6; }
 
-/* Switch Toggle */
 .switch-container { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e5e7eb; padding: 14px 16px; border-radius: 14px; margin-bottom: 14px; }
 .switch { position: relative; display: inline-block; width: 56px; height: 30px; }
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -68,10 +51,8 @@ a.btn { display: inline-block; text-align: center; text-decoration: none; }
 input:checked + .slider { background-color: #16a34a; }
 input:checked + .slider:before { transform: translateX(26px); }
 
-/* Modal */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; }
 .modal-content { background: #fff; width: 92%; max-width: 450px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 85vh; display: flex; flex-direction: column; }
-.modal-title { color: #dc2626; font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: center; }
 .settings-tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 14px; }
 .s-tab { flex: 1; padding: 10px 4px; background: none; border: none; font-size: 13px; font-weight: bold; color: #6b7280; cursor: pointer; text-align: center; }
 .s-tab.active { color: #dc2626; border-bottom: 2px solid #dc2626; margin-bottom: -2px; }
@@ -87,56 +68,47 @@ input:checked + .slider:before { transform: translateX(26px); }
 <div class="app">
     <div class="header">
         <div class="header-left">
-            <button class="gear-btn" onclick="openSettingsModal()" title="Cài đặt & Lịch sử">⚙️</button>
+            <button class="gear-btn" onclick="openSettingsModal()" title="Cài đặt">⚙️</button>
             <h1>🚨 P2P SOS Unified</h1>
         </div>
         <span class="muted" id="onlineBadge" style="color:#fff;">Offline</span>
     </div>
 
-    <!-- SỐ ĐIỆN THOẠI KHẨN CẤP -->
+    <!-- SỐ KHẨN CẤP -->
     <div class="card" style="background: #fef2f2; border-color: #fca5a5; text-align: center; margin: 14px 14px 0 14px;">
-        <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 14px;">🚨 SỐ ĐIỆN THOẠI KHẨN CẤP</div>
-        <div style="display: flex; gap: 10px; justify-content: center;">
-            <a href="tel:113" class="btn red" style="padding: 8px; font-size: 13px; text-decoration:none;">📞 113 (Công an)</a>
-            <a href="tel:115" class="btn orange" style="padding: 8px; font-size: 13px; background: #0284c7; text-decoration:none;">🚑 115 (Cấp cứu)</a>
+        <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 13px;">🚨 SỐ ĐIỆN THOẠI KHẨN CẤP</div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+            <a href="tel:113" class="btn red" style="padding: 6px; font-size: 12px; text-decoration:none;">📞 113 (Công an)</a>
+            <a href="tel:115" class="btn blue" style="padding: 6px; font-size: 12px; background: #0284c7; text-decoration:none;">🚑 115 (Cấp cứu)</a>
         </div>
     </div>
 
     <div class="tabs" style="margin-top: 14px;">
-        <button class="tab active" id="tabVictim" onclick="switchTab('victim')">⚠️ Chế Độ Gặp Nạn</button>
-        <button class="tab" id="tabHelper" onclick="switchTab('helper')">📍 Chế Độ Thợ Cứu Hộ</button>
+        <button class="tab active" id="tabVictim" onclick="switchTab('victim')">⚠️ Gặp Nạn</button>
+        <button class="tab" id="tabHelper" onclick="switchTab('helper')">📍 Thợ Cứu Hộ</button>
+        <button class="tab" id="tabServices" onclick="switchTab('services')">🗺️ Cây Xăng/Tiệm Xe</button>
     </div>
 
     <div class="content">
         <div class="notice hidden" id="noticeBox"></div>
-
-        <div class="card">
-            <div class="row" style="justify-content: space-between;">
-                <span class="muted">TÀI KHOẢN ĐANG DÙNG</span>
-                <button class="link" onclick="logout()">Đăng xuất ⎋</button>
-            </div>
-            <div style="margin-top: 8px; font-size: 15px;"><b id="accName"></b></div>
-            <div class="muted" id="idLabel" style="margin-top: 2px;"></div>
-        </div>
-
         <div class="card wait hidden" id="waitCard"></div>
 
-        <!-- CHẾ ĐỘ GẶP NẠN -->
+        <!-- TAB 1: GẶP NẠN -->
         <div id="victimPanel">
             <div class="card danger">
                 <h3>⚠️ Bạn đang gặp sự cố trên đường?</h3>
                 <input type="text" id="issueInput" placeholder="Mô tả sự cố (hết xăng, thủng lốp...)">
                 <input type="number" id="priceInput" placeholder="Giá đề xuất ban đầu (VNĐ)" value="50000">
-                <button class="btn red" id="sosBtn" onclick="sendSOS()">Phát Tín Hiệu Khẩn Cấp 🚨</button>
+                <button class="btn red" onclick="sendSOS()">Phát Tín Hiệu Khẩn Cấp 🚨</button>
             </div>
         </div>
 
-        <!-- CHẾ ĐỘ THỢ CỨU HỘ -->
+        <!-- TAB 2: THỢ CỨU HỘ -->
         <div id="helperPanel" class="hidden">
             <div class="switch-container">
                 <div>
-                    <div style="font-weight: bold; font-size: 15px;" id="statusLabelText">Trạng thái: Đang ngưng hoạt động</div>
-                    <div class="muted" id="statusSubText">Gạt công tắc sang xanh để sẵn sàng nhận đơn</div>
+                    <div style="font-weight: bold; font-size: 14px;" id="statusLabelText">Trạng thái: Đang ngưng</div>
+                    <div class="muted">Gạt công tắc để sẵn sàng nhận đơn</div>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="workToggle" onchange="toggleWorkStatus()">
@@ -145,70 +117,27 @@ input:checked + .slider:before { transform: translateX(26px); }
             </div>
             <div class="card" style="text-align: center;">
                 <h3>📡 Radar quét đơn cứu hộ</h3>
-                <div id="radarStatusText" style="color: #dc2626; font-weight: bold; margin-top: 10px;">🔴 Đang ngưng hoạt động</div>
+                <div id="radarStatusText" style="color: #dc2626; font-weight: bold;">🔴 Đang ngưng hoạt động</div>
             </div>
         </div>
 
-        <!-- POPUP CÀI ĐẶT & LỊCH SỬ -->
-        <div class="modal-overlay hidden" id="settingsModal">
-            <div class="modal-content">
-                <div class="modal-title">⚙️ Cài Đặt & Lịch Sử</div>
-                <div class="settings-tabs">
-                    <button class="s-tab active" onclick="switchSettingsTab('config')">Cài Đặt</button>
-                    <button class="s-tab" onclick="switchSettingsTab('rescueHistory')">Lịch Sử Cứu Hộ</button>
-                    <button class="s-tab" onclick="switchSettingsTab('issueHistory')">Lịch Sử Sự Cố</button>
-                </div>
-                <div class="s-pane active" id="paneConfig">
-                    <div style="margin-bottom: 14px;">
-                        <label style="font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block;">Tự động nhận đơn (Nổ đơn)</label>
-                        <select id="autoDispatchSelect" onchange="saveSettings()">
-                            <option value="ON">Bật 🟢</option>
-                            <option value="OFF">Tắt 🔴</option>
-                        </select>
-                    </div>
-                    <div style="margin-bottom: 14px;">
-                        <label style="font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block;">Khoảng cách tối đa nhận đơn</label>
-                        <select id="maxDistSelect" onchange="saveSettings()">
-                            <option value="3">3 km</option>
-                            <option value="5">5 km</option>
-                            <option value="10" selected>10 km</option>
-                            <option value="20">20 km</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="s-pane" id="paneRescueHistory">
-                    <div id="rescueHistoryList"><div class="empty">Đang tải lịch sử cứu hộ...</div></div>
-                </div>
-                <div class="s-pane" id="paneIssueHistory">
-                    <div id="issueHistoryList"><div class="empty">Đang tải lịch sử sự cố...</div></div>
-                </div>
-                <button class="btn blue" onclick="closeSettingsModal()" style="width: 100%; margin-top: 15px;">Đóng</button>
+        <!-- TAB 3: CÂY XĂNG & TIỆM XE -->
+        <div id="servicesPanel" class="hidden">
+            <div class="card">
+                <h3>🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn</h3>
+                <button class="btn blue small" onclick="loadNearbyServices()" style="margin-bottom:10px;">Quét địa điểm gần nhất 🔍</button>
+                <div id="servicesList"><div class="empty">Bấm nút trên để quét tìm địa điểm quanh vị trí của bạn.</div></div>
             </div>
         </div>
 
-        <!-- POPUP NỔ ĐƠN -->
-        <div class="modal-overlay hidden" id="orderModal">
-            <div class="modal-content" style="text-align: center;">
-                <div class="modal-title" style="color: #dc2626;">🔔 NỔ ĐƠN CỨU HỘ MỚI!</div>
-                <div id="modalBody" style="font-size: 15px; margin: 10px 0;"></div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn grey" onclick="ignoreOrder()">Bỏ qua</button>
-                    <button class="btn green" onclick="acceptDispatchedOrder()">Nhận Cuốc ✅</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- KHUNG CHAT & THƯƠNG LƯỢNG -->
+        <!-- KHUNG CHAT & LIVE TRACKING -->
         <div class="card chat-card hidden" id="chatSection">
             <div id="mapContainer" class="hidden">
                 <div id="map" style="height: 160px; border-radius: 10px; margin-bottom: 10px;"></div>
             </div>
             <div class="chat-head">
                 <h3 id="chatTitle">💬 Khung chat</h3>
-                <div class="chat-actions">
-                    <a class="btn blue small hidden" id="navIconBtn" href="#" target="_blank">🧭 Chỉ đường</a>
-                    <a class="btn green small hidden" id="callBtn" href="#">📞 Gọi</a>
-                </div>
+                <a class="btn green small hidden" id="callBtn" href="#">📞 Gọi</a>
             </div>
             <div id="approvalSection"></div>
             <div class="chat-box" id="chatContainer"></div>
@@ -218,78 +147,58 @@ input:checked + .slider:before { transform: translateX(26px); }
             </div>
             <div style="margin-top: 10px; display: flex; gap: 8px;">
                 <button class="btn grey small" onclick="openCancelModal()" style="background: #6b7280;">🚫 Hủy đơn</button>
-                <button class="btn grey small" onclick="openReportModal()" style="background: #b91c1c;">⚠️ Báo cáo / An toàn</button>
+                <button class="btn grey small" onclick="openReportModal()" style="background: #b91c1c;">⚠️ Báo cáo</button>
             </div>
         </div>
     </div>
+
+    <!-- POPUP CÀI ĐẶT -->
+    <div class="modal-overlay hidden" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-title" style="color:#dc2626; font-size:18px; text-align:center; font-weight:bold; margin-bottom:15px;">⚙️ Cài Đặt & Lịch Sử</div>
+            <div class="settings-tabs">
+                <button class="s-tab active" onclick="switchSettingsTab('config')">Cài Đặt</button>
+                <button class="s-tab" onclick="switchSettingsTab('rescueHistory')">Lịch Sử Cứu Hộ</button>
+                <button class="s-tab" onclick="switchSettingsTab('issueHistory')">Lịch Sử Sự Cố</button>
+            </div>
+            <div class="s-pane active" id="paneConfig">
+                <label style="font-size:13px; font-weight:bold;">Tự động nhận đơn</label>
+                <select id="autoDispatchSelect" onchange="saveSettings()"><option value="ON">Bật 🟢</option><option value="OFF">Tắt 🔴</option></select>
+                <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Bán kính nhận đơn</label>
+                <select id="maxDistSelect" onchange="saveSettings()"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option></select>
+            </div>
+            <div class="s-pane" id="paneRescueHistory"><div id="rescueHistoryList"><div class="empty">Đang tải...</div></div></div>
+            <div class="s-pane" id="paneIssueHistory"><div id="issueHistoryList"><div class="empty">Đang tải...</div></div></div>
+            <button class="btn blue" onclick="closeSettingsModal()" style="width:100%; margin-top:15px;">Đóng</button>
+        </div>
+    </div>
+
+    <!-- POPUP NỔ ĐƠN -->
+    <div class="modal-overlay hidden" id="orderModal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 style="color: #dc2626;">🔔 NỔ ĐƠN CỨU HỘ MỚI!</h3>
+            <div id="modalBody" style="font-size: 15px; margin: 10px 0;"></div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn grey" onclick="ignoreOrder()">Bỏ qua</button>
+                <button class="btn green" onclick="acceptDispatchedOrder()">Nhận Cuốc ✅</button>
+            </div>
+        </div>
+    </div>
+
     <div class="footer">Trạng thái hệ thống: <b id="sysStatus" class="err">Đang kết nối...</b></div>
 </div>
 
 <script>
 const API = window.location.origin;
-const STATUS_TEXT = { PENDING: "Chờ thợ", WAITING_APPROVAL: "Chờ duyệt", CHATTING: "Thương lượng", NEGOTIATING: "Đang cứu hộ", COMPLETED: "Hoàn thành", EXPIRED: "Hết hạn", CANCELLED: "Đã hủy" };
-const CHAT_STATUSES = ["WAITING_APPROVAL", "CHATTING", "NEGOTIATING", "COMPLETED"];
-const RESTORE_STATUSES = ["WAITING_APPROVAL", "CHATTING", "NEGOTIATING"];
-
 let currentTab = "victim";
-let pollTimer = null;
-let radarTimer = null;
-let activeSosId = null;
-let currentIncomingSosId = null;
+let pollTimer = null, radarTimer = null, trackingInterval = null, helperLocationSender = null;
+let activeSosId = null, currentIncomingSosId = null, currentSos = null;
 let mapInstance = null, markerInstance = null;
-let currentSos = null;
 
 if (!sessionStorage.getItem("user_id")) { window.location.replace("/static/login.html"); }
 const $ = id => document.getElementById(id);
 const money = n => Number(n).toLocaleString("vi-VN");
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-function loadSettings() {
-    $("workToggle").checked = localStorage.getItem("work_status") === "ON";
-    if (localStorage.getItem("auto_dispatch")) $("autoDispatchSelect").value = localStorage.getItem("auto_dispatch");
-    if (localStorage.getItem("max_distance")) $("maxDistSelect").value = localStorage.getItem("max_distance");
-    updateHelperStatusUI();
-}
-
-function toggleWorkStatus() {
-    localStorage.setItem("work_status", $("workToggle").checked ? "ON" : "OFF");
-    updateHelperStatusUI();
-}
-
-function saveSettings() {
-    localStorage.setItem("auto_dispatch", $("autoDispatchSelect").value);
-    localStorage.setItem("max_distance", $("maxDistSelect").value);
-    updateHelperStatusUI();
-}
-
-function updateHelperStatusUI() {
-    const isWorking = $("workToggle").checked;
-    $("radarStatusText").textContent = isWorking ? "🟢 Đang quét đơn cứu hộ..." : "🔴 Đang ngưng hoạt động";
-    $("radarStatusText").style.color = isWorking ? "#16a34a" : "#dc2626";
-}
-
-function openSettingsModal() {
-    $("settingsModal").classList.remove("hidden");
-    loadHistoryIntoSettings();
-}
-function closeSettingsModal() { $("settingsModal").classList.add("hidden"); }
-
-function switchSettingsTab(tabName) {
-    document.querySelectorAll(".s-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".s-pane").forEach(p => p.classList.remove("active"));
-    if (tabName === 'config') { event.currentTarget.classList.add("active"); $("paneConfig").classList.add("active"); }
-    else if (tabName === 'rescueHistory') { event.currentTarget.classList.add("active"); $("paneRescueHistory").classList.add("active"); }
-    else if (tabName === 'issueHistory') { event.currentTarget.classList.add("active"); $("paneIssueHistory").classList.add("active"); }
-}
-
-async function loadHistoryIntoSettings() {
-    const uid = parseInt(sessionStorage.getItem("user_id"));
-    try {
-        const list = await api(`/api/users/${uid}/sos`);
-        $("rescueHistoryList").innerHTML = list.filter(s => s.role === "Thợ").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${STATUS_TEXT[s.status] || s.status}</b></div>`).join("") || '<div class="empty">Chưa có lịch sử.</div>';
-        $("issueHistoryList").innerHTML = list.filter(s => s.role === "Khách").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${STATUS_TEXT[s.status] || s.status}</b></div>`).join("") || '<div class="empty">Chưa có lịch sử.</div>';
-    } catch (e) {}
-}
 
 async function api(path, options = {}) {
     options.headers = Object.assign({ "Authorization": "Bearer " + (sessionStorage.getItem("token") || ""), "Content-Type": "application/json" }, options.headers);
@@ -304,29 +213,114 @@ function switchTab(tab) {
     currentTab = tab;
     $("victimPanel").classList.toggle("hidden", tab !== "victim");
     $("helperPanel").classList.toggle("hidden", tab !== "helper");
+    $("servicesPanel").classList.toggle("hidden", tab !== "services");
+
     $("tabVictim").classList.toggle("active", tab === "victim");
     $("tabHelper").classList.toggle("active", tab === "helper");
+    $("tabServices").classList.toggle("active", tab === "services");
+
     if (activeSosId) refreshChat();
+}
+
+function openSettingsModal() { $("settingsModal").classList.remove("hidden"); loadHistory(); }
+function closeSettingsModal() { $("settingsModal").classList.add("hidden"); }
+
+function switchSettingsTab(tabName) {
+    document.querySelectorAll(".s-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".s-pane").forEach(p => p.classList.remove("active"));
+    if (tabName === 'config') { event.currentTarget.classList.add("active"); $("paneConfig").classList.add("active"); }
+    else if (tabName === 'rescueHistory') { event.currentTarget.classList.add("active"); $("paneRescueHistory").classList.add("active"); }
+    else if (tabName === 'issueHistory') { event.currentTarget.classList.add("active"); $("paneIssueHistory").classList.add("active"); }
+}
+
+async function loadHistory() {
+    const uid = parseInt(sessionStorage.getItem("user_id"));
+    try {
+        const list = await api(`/api/users/${uid}/sos`);
+        $("rescueHistoryList").innerHTML = list.filter(s => s.role === "Thợ").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${s.status}</b></div>`).join("") || '<div class="empty">Trống</div>';
+        $("issueHistoryList").innerHTML = list.filter(s => s.role === "Khách").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${s.status}</b></div>`).join("") || '<div class="empty">Trống</div>';
+    } catch (e) {}
+}
+
+function toggleWorkStatus() {
+    localStorage.setItem("work_status", $("workToggle").checked ? "ON" : "OFF");
+    updateHelperStatusUI();
+}
+
+function updateHelperStatusUI() {
+    const isWorking = $("workToggle").checked;
+    $("radarStatusText").textContent = isWorking ? "🟢 Đang quét đơn..." : "🔴 Đang ngưng";
+    $("radarStatusText").style.color = isWorking ? "#16a34a" : "#dc2626";
+    if (isWorking) startSendingHelperLocation();
+}
+
+// LIVE TRACKING THỢ
+function startSendingHelperLocation() {
+    if (helperLocationSender) clearInterval(helperLocationSender);
+    helperLocationSender = setInterval(() => {
+        if (navigator.geolocation && currentTab === "helper" && activeSosId) {
+            navigator.geolocation.getCurrentPosition(async pos => {
+                try {
+                    await api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }) });
+                } catch (e) {}
+            });
+        }
+    }, 5000);
+}
+
+// LIVE TRACKING KHÁCH XEM BẢN ĐỒ
+function startTrackingHelperOnMap(sosId) {
+    if (trackingInterval) clearInterval(trackingInterval);
+    $("mapContainer").classList.remove("hidden");
+    trackingInterval = setInterval(async () => {
+        try {
+            const data = await api(`/api/sos/${sosId}/helper-location`);
+            if (data.latitude && data.longitude) {
+                if (!mapInstance) {
+                    mapInstance = L.map('map').setView([data.latitude, data.longitude], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+                    markerInstance = L.marker([data.latitude, data.longitude]).addTo(mapInstance).bindPopup("Thợ đang tới!").openPopup();
+                } else {
+                    markerInstance.setLatLng([data.latitude, data.longitude]);
+                    mapInstance.setView([data.latitude, data.longitude]);
+                }
+            }
+        } catch (e) {}
+    }, 4000);
+}
+
+async function loadNearbyServices() {
+    if (!navigator.geolocation) { alert("Chưa bật GPS!"); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+        try {
+            const list = await api(`/api/nearby-services?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+            $("servicesList").innerHTML = list.map(item => `
+                <div style="border-bottom: 1px solid #f3f4f6; padding: 10px 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div><b>${esc(item.name)}</b> (${esc(item.type)}).<br><span style="font-size:12px; color:#6b7280;">📍 ${esc(item.address)}</span></div>
+                    <a href="tel:${item.phone}" class="btn green small" style="text-decoration:none;">📞 Gọi</a>
+                </div>
+            `).join("");
+        } catch (e) { alert("Lỗi tải danh sách!"); }
+    });
 }
 
 async function sendSOS() {
     const issue = $("issueInput").value.trim();
     const price = parseFloat($("priceInput").value);
-    if (!issue || !price) { alert("Vui lòng điền đủ thông tin!"); return; }
-    
+    if (!issue || !price) { alert("Nhập đủ thông tin!"); return; }
     let url = `/api/sos?issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
             url += `&latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}`;
-            submitSOSRequest(url);
-        }, () => submitSOSRequest(url));
-    } else { submitSOSRequest(url); }
+            submitSOS(url);
+        }, () => submitSOS(url));
+    } else { submitSOS(url); }
 }
 
-async function submitSOSRequest(url) {
+async function submitSOS(url) {
     try {
         const data = await api(url, { method: "POST" });
-        await openChat(data.sos_id, false);
+        await openChat(data.sos_id);
     } catch (e) { alert(e.message); }
 }
 
@@ -336,7 +330,7 @@ async function backgroundRadarPoll() {
         const data = await api("/api/helper/incoming-order");
         if (data.has_order && currentIncomingSosId !== data.sos_id) {
             currentIncomingSosId = data.sos_id;
-            $("modalBody").innerHTML = `Khách: <b>${esc(data.user_name)}</b><br>Sự cố: <b>${esc(data.issue_type)}</b><br>Giá: <b style="color:#dc2626;">${money(data.proposed_price)} VNĐ</b><br>Cách bạn: <b>~${data.distance_km} km</b>`;
+            $("modalBody").innerHTML = `Khách: <b>${esc(data.user_name)}</b><br>Sự cố: <b>${esc(data.issue_type)}</b><br>Giá: <b style="color:#dc2626;">${money(data.proposed_price)} VNĐ</b>`;
             $("orderModal").classList.remove("hidden");
         }
     } catch (e) {}
@@ -350,41 +344,22 @@ async function ignoreOrder() {
 
 async function acceptDispatchedOrder() {
     $("orderModal").classList.add("hidden");
-    const price = prompt("Nhập mức giá đề nghị (VNĐ):", "50000");
+    const price = prompt("Nhập giá đề nghị (VNĐ):", "50000");
     if (!price) return;
     try {
         await api(`/api/sos/${currentIncomingSosId}/negotiate?final_price=${price}`, { method: "PUT" });
         switchTab('helper');
-        await openChat(currentIncomingSosId, false);
+        await openChat(currentIncomingSosId);
     } catch (e) { alert(e.message); }
     currentIncomingSosId = null;
 }
 
-async function openChat(sosId, restore) {
+async function openChat(sosId) {
     activeSosId = Number(sosId);
     sessionStorage.setItem("active_sos_id", activeSosId);
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(refreshChat, 3000);
     await refreshChat();
-}
-
-function approvalHtml(sos, isOwner, isHelper) {
-    const price = sos.agreed_price ? money(sos.agreed_price) : "";
-    const otherName = isOwner ? (sos.helper_name || "Thợ") : (sos.user_name || "Khách");
-    const otherPhone = isOwner ? sos.helper_phone : sos.user_phone;
-
-    let infoBox = `<div style="font-size: 13px; margin-bottom: 8px;">👤 Kết nối với <b>${esc(otherName)}</b> ${otherPhone ? `- SĐT: <b>${esc(otherPhone)}</b>` : ""}</div>`;
-
-    if (sos.status === "WAITING_APPROVAL" && sos.agreed_price && isOwner) {
-        return `<div class="approval-box">${infoBox}<b>⚠️ Thợ đề nghị giá: <span class="price">${price} VNĐ</span></b><div class="approval-actions"><button class="btn green" onclick="respondPrice(${sos.id}, 'ACCEPT', ${sos.agreed_price})">✔ Đồng Ý</button><button class="btn red" onclick="respondPrice(${sos.id}, 'REJECT', ${sos.agreed_price})">✖ Từ Chối</button></div></div>`;
-    }
-    if (sos.status === "NEGOTIATING") {
-        return `<div class="approval-box ok">${infoBox}✅ Đã chốt giá <b>${price} VNĐ</b>.${isOwner ? `<br><button class="btn green small" style="margin-top:6px;" onclick="completeOrder(${sos.id})">Hoàn Thành ✅</button>` : ""}</div>`;
-    }
-    if (sos.status === "COMPLETED") {
-        return `<div class="approval-box done">${infoBox}🏁 Đơn đã hoàn thành.<br><button class="btn grey small" style="margin-top:6px;" onclick="clearActive()">Đóng chat</button></div>`;
-    }
-    return `<div class="approval-box">${infoBox}Trạng thái: <b>${STATUS_TEXT[sos.status]}</b></div>`;
 }
 
 async function refreshChat() {
@@ -397,64 +372,41 @@ async function refreshChat() {
         const isHelper = sos.helper_id === uid;
         const isCorrectTab = (currentTab === "victim" && isOwner) || (currentTab === "helper" && isHelper);
 
-        $("chatSection").classList.toggle("hidden", !isCorrectTab || !CHAT_STATUSES.includes(sos.status));
-        $("chatTitle").textContent = `💬 Đơn #${sos.id}`;
-        
-        if (sos.helper_phone && isOwner) {
-            $("callBtn").href = "tel:" + sos.helper_phone;
-            $("callBtn").classList.remove("hidden");
-        } else if (sos.user_phone && isHelper) {
-            $("callBtn").href = "tel:" + sos.user_phone;
-            $("callBtn").classList.remove("hidden");
-        } else {
-            $("callBtn").classList.add("hidden");
-        }
+        $("chatSection").classList.toggle("hidden", !isCorrectTab);
+        $("chatTitle").textContent = `💬 Đơn #${sos.id} (${sos.status})`;
 
-        $("approvalSection").innerHTML = approvalHtml(sos, isOwner, isHelper);
-        
+        if (isOwner && sos.helper_id) startTrackingHelperOnMap(sos.id);
+
         const messages = await api(`/api/sos/${sos.id}/messages`);
         $("chatContainer").innerHTML = messages.map(m => `<div class="msg"><b>${m.sender_id === uid ? 'Bạn' : 'Đối phương'}:</b> ${esc(m.content)}</div>`).join("");
-    } catch (e) { clearActive(); }
+    } catch (e) {}
 }
 
-async function respondPrice(sosId, action, price) {
+async function sendChat() {
+    const content = $("chatInput").value.trim();
+    if (!activeSosId || !content) return;
     try {
-        await api(`/api/sos/${sosId}/respond?action=${action}&expected_price=${price}`, { method: "PUT" });
-        await refreshChat();
-    } catch (e) { alert(e.message); }
-}
-
-async function completeOrder(sosId) {
-    try {
-        await api(`/api/sos/${sosId}/complete`, { method: "PUT" });
-        alert("Đã hoàn thành đơn!");
+        await api(`/api/sos/${activeSosId}/messages`, { method: "POST", body: JSON.stringify({ content }) });
+        $("chatInput").value = "";
         await refreshChat();
     } catch (e) { alert(e.message); }
 }
 
 async function openCancelModal() {
-    const reason = prompt("Nhập lý do hủy đơn cứu hộ:");
+    const reason = prompt("Lý do hủy đơn:");
     if (!reason) return;
     try {
-        await api(`/api/sos/${activeSosId}/cancel`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reason })
-        });
+        await api(`/api/sos/${activeSosId}/cancel`, { method: "PUT", body: JSON.stringify({ reason }) });
         alert("Đã hủy đơn.");
         clearActive();
     } catch (e) { alert(e.message); }
 }
 
 async function openReportModal() {
-    const reason = prompt("Nhập nội dung báo cáo an toàn:");
+    const reason = prompt("Nội dung báo cáo:");
     if (!reason) return;
     try {
-        const res = await api(`/api/sos/${activeSosId}/report`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reason })
-        });
+        const res = await api(`/api/sos/${activeSosId}/report`, { method: "POST", body: JSON.stringify({ reason }) });
         alert(res.message);
     } catch (e) { alert(e.message); }
 }
@@ -467,35 +419,16 @@ function clearActive() {
     $("chatSection").classList.add("hidden");
 }
 
-async function sendChat() {
-    const content = $("chatInput").value.trim();
-    if (!activeSosId || !content) return;
-    try {
-        await api(`/api/sos/${activeSosId}/messages`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content })
-        });
-        $("chatInput").value = "";
-        await refreshChat();
-    } catch (e) { alert(e.message); }
-}
+function logout() { sessionStorage.clear(); window.location.replace("/static/login.html"); }
 
-function logout() {
-    sessionStorage.clear();
-    window.location.replace("/static/login.html");
-}
-
-window.onload = async function() {
+window.onload = async () => {
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(() => {});
-    loadSettings();
+    $("workToggle").checked = localStorage.getItem("work_status") === "ON";
     $("accName").textContent = sessionStorage.getItem("name") || "Thành viên";
     $("idLabel").textContent = `SĐT ${sessionStorage.getItem("phone") || ""} - ID: ${sessionStorage.getItem("user_id")}`;
-    
     radarTimer = setInterval(backgroundRadarPoll, 3000);
-
     let saved = sessionStorage.getItem("active_sos_id");
-    if (saved) await openChat(saved, true);
+    if (saved) await openChat(saved);
 };
 </script>
 </body>

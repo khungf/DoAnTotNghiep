@@ -37,7 +37,6 @@ def require_participant(sos, user_id: int):
     if user_id != sos.user_id and user_id != sos.helper_id:
         raise HTTPException(status_code=403, detail="Bạn không thuộc đơn cứu hộ này!")
 
-# Tính năng 1: Tự động chuyển đơn PENDING thành EXPIRED sau 15 phút
 def check_expired_sos(db: Session):
     expiration_threshold = datetime.utcnow() - timedelta(minutes=15)
     pending_sos = db.query(models.SOSRequest).filter(
@@ -84,11 +83,7 @@ def create_sos(issue_type: str, proposed_price: float, latitude: float = None, l
     db.add(sos_request)
     db.commit()
     db.refresh(sos_request)
-    return {
-        "message": "Phát tín hiệu SOS thành công!",
-        "sos_id": sos_request.id,
-        "status": sos_request.status
-    }
+    return {"message": "Phát tín hiệu SOS thành công!", "sos_id": sos_request.id, "status": sos_request.status}
 
 @router.put("/sos/{sos_id}/ignore")
 def ignore_sos(sos_id: int, current: models.User = Depends(auth.get_current_user)):
@@ -100,20 +95,13 @@ def ignore_sos(sos_id: int, current: models.User = Depends(auth.get_current_user
 
 @router.get("/helper/incoming-order")
 def get_incoming_order(lat: float = None, lon: float = None, max_distance: float = 10.0, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    check_expired_sos(db) # Kiểm tra và hết hạn đơn cũ trước khi quét
+    check_expired_sos(db)
     helper_id = current.id
     pending_sos = db.query(models.SOSRequest).filter(models.SOSRequest.status == "PENDING").all()
     if not pending_sos:
         return {"has_order": False}
 
-    valid_sos = []
-    for s in pending_sos:
-        if s.user_id == helper_id:
-            continue
-        if s.id in IGNORED_ORDERS and helper_id in IGNORED_ORDERS[s.id]:
-            continue
-        valid_sos.append(s)
-
+    valid_sos = [s for s in pending_sos if s.user_id != helper_id and not (s.id in IGNORED_ORDERS and helper_id in IGNORED_ORDERS[s.id])]
     if not valid_sos:
         return {"has_order": False}
 
@@ -151,19 +139,11 @@ def get_sos(sos_id: int, current: models.User = Depends(auth.get_current_user), 
     helper_name, helper_phone = get_user_info(db, sos.helper_id)
 
     return {
-        "id": sos.id,
-        "user_id": sos.user_id,
-        "helper_id": sos.helper_id,
-        "issue_type": sos.issue_type,
-        "proposed_price": sos.proposed_price,
-        "agreed_price": sos.agreed_price,
-        "status": sos.status,
-        "latitude": sos.latitude,
-        "longitude": sos.longitude,
-        "user_name": user_name,
-        "user_phone": user_phone if share_info else None,
-        "helper_name": helper_name if share_info else None,
-        "helper_phone": helper_phone if share_info else None
+        "id": sos.id, "user_id": sos.user_id, "helper_id": sos.helper_id,
+        "issue_type": sos.issue_type, "proposed_price": sos.proposed_price, "agreed_price": sos.agreed_price,
+        "status": sos.status, "latitude": sos.latitude, "longitude": sos.longitude,
+        "user_name": user_name, "user_phone": user_phone if share_info else None,
+        "helper_name": helper_name if share_info else None, "helper_phone": helper_phone if share_info else None
     }
 
 @router.put("/sos/{sos_id}/negotiate")
@@ -181,7 +161,6 @@ def negotiate_sos(sos_id: int, final_price: float, current: models.User = Depend
 
     db.add(models.Message(sos_id=sos_id, sender_id=helper_id, content=f"💰 Thợ đề nghị mức giá {final_price:,.0f} VNĐ. Đang chờ khách xác nhận."))
     db.commit()
-    db.refresh(sos)
     return {"message": "Đã gửi đề nghị giá!", "status": sos.status}
 
 @router.put("/sos/{sos_id}/respond")
@@ -196,7 +175,7 @@ def respond_sos(sos_id: int, action: str, expected_price: float = None, current:
     else:
         sos.status = "CHATTING"
         sos.agreed_price = None
-        msg = "❌ Khách chưa đồng ý giá, hai bên có thể thương lượng lại."
+        msg = "❌ Khách chưa đồng ý giá, thương lượng lại."
 
     db.add(models.Message(sos_id=sos_id, sender_id=sos.user_id, content=msg))
     db.commit()
@@ -211,7 +190,6 @@ def complete_sos(sos_id: int, current: models.User = Depends(auth.get_current_us
     db.commit()
     return {"message": "Hoàn thành đơn!", "status": sos.status}
 
-# Tính năng 3: Hủy đơn đúng cách (lưu lý do và người hủy)
 @router.put("/sos/{sos_id}/cancel")
 def cancel_sos(sos_id: int, body: CancelRequest, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
     sos = get_sos_or_404(db, sos_id)
@@ -224,10 +202,6 @@ def cancel_sos(sos_id: int, body: CancelRequest, current: models.User = Depends(
     sos.cancelled_by = current.id
     
     role_name = "Khách hàng" if current.id == sos.user_id else "Thợ cứu hộ"
-    db.add(models.Message(
-        sos_id=sos_id, 
-        sender_id=current.id, 
-        content=f"🚫 {role_name} đã hủy đơn cứu hộ. Lý do: {sos.cancel_reason}"
-    ))
+    db.add(models.Message(sos_id=sos_id, sender_id=current.id, content=f"🚫 {role_name} đã hủy đơn. Lý do: {sos.cancel_reason}"))
     db.commit()
-    return {"message": "Đã hủy đơn cứu hộ thành công.", "status": sos.status}
+    return {"message": "Đã hủy đơn thành công.", "status": sos.status}

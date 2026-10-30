@@ -11,7 +11,7 @@ database.init_db()
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="P2P Emergency Rescue Platform", version="2.0")
+app = FastAPI(title="P2P Emergency Rescue Platform", version="2.2")
 
 app.add_middleware(
     CORSMiddleware,
