@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from .. import models, database, auth
 
 router = APIRouter(prefix="/api", tags=["chat"])
-CHAT_STATUSES = ("WAITING_APPROVAL", "CHATTING", "NEGOTIATING")
+CLOSED_STATUSES = ("COMPLETED", "CANCELLED", "EXPIRED")
 
 def get_sos_or_404(db: Session, sos_id: int):
     sos = db.query(models.SOSRequest).filter(models.SOSRequest.id == sos_id).first()
@@ -23,12 +23,14 @@ class MessageCreate(BaseModel):
 def send_message(sos_id: int, msg: MessageCreate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
     sos = get_sos_or_404(db, sos_id)
     require_participant(sos, current.id)
-    if sos.status == "COMPLETED":
-        raise HTTPException(status_code=400, detail="Đơn đã hoàn thành!")
-    
+    if sos.status in CLOSED_STATUSES:
+        raise HTTPException(status_code=400, detail="Đơn đã kết thúc, không thể nhắn thêm!")
+
     content = msg.content.strip()
     if not content:
         raise HTTPException(status_code=400, detail="Tin nhắn trống!")
+    if len(content) > 1000:
+        raise HTTPException(status_code=400, detail="Tin nhắn quá dài!")
 
     new_msg = models.Message(sos_id=sos_id, sender_id=current.id, content=content)
     db.add(new_msg)

@@ -61,6 +61,12 @@ input:checked + .slider:before { transform: translateX(26px); }
 .history-item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
 
 .footer { text-align: center; padding: 12px; background: #e5e7eb; font-size: 13px; color: #374151; }
+.note { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 8px 10px; border-radius: 10px; font-size: 13px; margin-bottom: 8px; }
+.note:empty { display: none; }
+.settings-tabs { overflow-x: auto; }
+.s-tab { white-space: nowrap; padding: 10px 8px; font-size: 12px; }
+.s-pane { overflow-y: auto; }
+.review-box { border-top: 1px dashed #d1d5db; padding-top: 8px; margin-bottom: 8px; }
 .hidden { display: none !important; }
 </style>
 </head>
@@ -72,6 +78,11 @@ input:checked + .slider:before { transform: translateX(26px); }
             <h1>🚨 P2P SOS Unified</h1>
         </div>
         <span class="muted" id="onlineBadge" style="color:#fff;">Offline</span>
+    </div>
+
+    <div class="card" style="margin: 14px 14px 0 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <div><b id="accName"></b><br><span class="muted" id="idLabel"></span></div>
+        <button class="btn grey small" onclick="logout()">Đăng xuất</button>
     </div>
 
     <!-- SỐ KHẨN CẤP -->
@@ -157,15 +168,46 @@ input:checked + .slider:before { transform: translateX(26px); }
         <div class="modal-content">
             <div class="modal-title" style="color:#dc2626; font-size:18px; text-align:center; font-weight:bold; margin-bottom:15px;">⚙️ Cài Đặt & Lịch Sử</div>
             <div class="settings-tabs">
-                <button class="s-tab active" onclick="switchSettingsTab('config')">Cài Đặt</button>
-                <button class="s-tab" onclick="switchSettingsTab('rescueHistory')">Lịch Sử Cứu Hộ</button>
-                <button class="s-tab" onclick="switchSettingsTab('issueHistory')">Lịch Sử Sự Cố</button>
+                <button class="s-tab active" onclick="switchSettingsTab('config', this)">Cài Đặt</button>
+                <button class="s-tab" onclick="switchSettingsTab('account', this)">Tài Khoản</button>
+                <button class="s-tab" onclick="switchSettingsTab('verify', this)">Xác Minh Thợ</button>
+                <button class="s-tab" onclick="switchSettingsTab('rescueHistory', this)">Lịch Sử Cứu Hộ</button>
+                <button class="s-tab" onclick="switchSettingsTab('issueHistory', this)">Lịch Sử Sự Cố</button>
             </div>
             <div class="s-pane active" id="paneConfig">
                 <label style="font-size:13px; font-weight:bold;">Tự động nhận đơn</label>
                 <select id="autoDispatchSelect" onchange="saveSettings()"><option value="ON">Bật 🟢</option><option value="OFF">Tắt 🔴</option></select>
                 <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Bán kính nhận đơn</label>
                 <select id="maxDistSelect" onchange="saveSettings()"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option></select>
+            </div>
+            <div class="s-pane" id="paneAccount">
+                <div style="font-size:13px; margin-bottom:10px;">Số điện thoại: <b id="accPhone"></b></div>
+                <div id="emailLinked" class="hidden">
+                    <div style="font-size:13px; margin-bottom:8px;">Email nhận thông báo: <b id="emailCurrent"></b></div>
+                    <button class="btn grey small" onclick="unlinkEmail()">Gỡ email</button>
+                </div>
+                <div id="emailForm">
+                    <label style="font-size:13px; font-weight:bold;">Liên kết email để nhận thông báo đơn</label>
+                    <input type="email" id="emailInput" placeholder="ten@email.com" autocomplete="email">
+                    <button class="btn blue small" id="emailSendBtn" onclick="sendEmailCode()">Gửi mã xác nhận</button>
+                    <div id="emailCodeRow" class="hidden" style="margin-top:8px;">
+                        <input type="text" id="emailCodeInput" inputmode="numeric" maxlength="6" placeholder="Nhập mã 6 số">
+                        <button class="btn green small" onclick="verifyEmailCode()">Xác nhận email</button>
+                    </div>
+                </div>
+                <div class="note" id="accMsg" style="margin-top:10px;"></div>
+            </div>
+            <div class="s-pane" id="paneVerify">
+                <div class="note" id="verifyStatus"></div>
+                <div id="verifyForm">
+                    <label style="font-size:13px; font-weight:bold;">Thông tin xe (loại xe, biển số)</label>
+                    <input type="text" id="vehicleInfo" maxlength="120" placeholder="Ví dụ: Wave Alpha - 59X1-12345">
+                    <label style="font-size:13px; font-weight:bold;">Ảnh xe</label>
+                    <input type="file" id="vehiclePhotoFile" accept="image/*">
+                    <label style="font-size:13px; font-weight:bold;">Ảnh bằng lái hoặc chứng chỉ (không bắt buộc)</label>
+                    <input type="file" id="certPhotoFile" accept="image/*">
+                    <button class="btn blue small" id="verifySubmitBtn" onclick="submitVerification()">Gửi hồ sơ</button>
+                </div>
             </div>
             <div class="s-pane" id="paneRescueHistory"><div id="rescueHistoryList"><div class="empty">Đang tải...</div></div></div>
             <div class="s-pane" id="paneIssueHistory"><div id="issueHistoryList"><div class="empty">Đang tải...</div></div></div>
@@ -190,9 +232,10 @@ input:checked + .slider:before { transform: translateX(26px); }
 
 <script>
 const API = window.location.origin;
+const TERMINAL = ["COMPLETED", "CANCELLED", "EXPIRED"];
 let currentTab = "victim";
-let pollTimer = null, radarTimer = null, trackingInterval = null, helperLocationSender = null;
-let activeSosId = null, currentIncomingSosId = null, currentSos = null;
+let pollTimer = null, radarTimer = null, trackingInterval = null, trackingSosId = null, helperLocationSender = null;
+let activeSosId = null, currentIncomingSosId = null, currentSos = null, radarBusy = false;
 let mapInstance = null, markerInstance = null;
 
 if (!sessionStorage.getItem("user_id")) { window.location.replace("/static/login.html"); }
@@ -205,8 +248,20 @@ async function api(path, options = {}) {
     const res = await fetch(API + path, options);
     let body = null;
     try { body = await res.json(); } catch (e) {}
+    if (res.status === 401) {
+        sessionStorage.clear();
+        window.location.replace("/static/login.html");
+        throw new Error(body?.detail || "Phiên đăng nhập hết hạn");
+    }
     if (!res.ok) throw new Error(body?.detail || "Lỗi " + res.status);
     return body;
+}
+
+function getPosition() {
+    return new Promise(resolve => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(p => resolve(p.coords), () => resolve(null), { timeout: 8000, maximumAge: 10000 });
+    });
 }
 
 function switchTab(tab) {
@@ -225,20 +280,34 @@ function switchTab(tab) {
 function openSettingsModal() { $("settingsModal").classList.remove("hidden"); loadHistory(); }
 function closeSettingsModal() { $("settingsModal").classList.add("hidden"); }
 
-function switchSettingsTab(tabName) {
+function switchSettingsTab(tabName, btn) {
     document.querySelectorAll(".s-tab").forEach(t => t.classList.remove("active"));
     document.querySelectorAll(".s-pane").forEach(p => p.classList.remove("active"));
-    if (tabName === 'config') { event.currentTarget.classList.add("active"); $("paneConfig").classList.add("active"); }
-    else if (tabName === 'rescueHistory') { event.currentTarget.classList.add("active"); $("paneRescueHistory").classList.add("active"); }
-    else if (tabName === 'issueHistory') { event.currentTarget.classList.add("active"); $("paneIssueHistory").classList.add("active"); }
+    const panes = { config: "paneConfig", account: "paneAccount", verify: "paneVerify", rescueHistory: "paneRescueHistory", issueHistory: "paneIssueHistory" };
+    if (!panes[tabName]) return;
+    if (btn) btn.classList.add("active");
+    $(panes[tabName]).classList.add("active");
+    if (tabName === "account") loadAccount();
+    if (tabName === "verify") loadVerification();
+}
+
+function saveSettings() {
+    localStorage.setItem("auto_dispatch", $("autoDispatchSelect").value);
+    localStorage.setItem("max_dist", $("maxDistSelect").value);
+}
+
+function loadSettings() {
+    $("autoDispatchSelect").value = localStorage.getItem("auto_dispatch") || "ON";
+    $("maxDistSelect").value = localStorage.getItem("max_dist") || "10";
 }
 
 async function loadHistory() {
     const uid = parseInt(sessionStorage.getItem("user_id"));
     try {
         const list = await api(`/api/users/${uid}/sos`);
-        $("rescueHistoryList").innerHTML = list.filter(s => s.role === "Thợ").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${s.status}</b></div>`).join("") || '<div class="empty">Trống</div>';
-        $("issueHistoryList").innerHTML = list.filter(s => s.role === "Khách").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${s.status}</b></div>`).join("") || '<div class="empty">Trống</div>';
+        const row = s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${esc(s.status)}</b></div>`;
+        $("rescueHistoryList").innerHTML = list.filter(s => s.role === "Thợ").map(row).join("") || '<div class="empty">Trống</div>';
+        $("issueHistoryList").innerHTML = list.filter(s => s.role === "Khách").map(row).join("") || '<div class="empty">Trống</div>';
     } catch (e) {}
 }
 
@@ -251,28 +320,39 @@ function updateHelperStatusUI() {
     const isWorking = $("workToggle").checked;
     $("radarStatusText").textContent = isWorking ? "🟢 Đang quét đơn..." : "🔴 Đang ngưng";
     $("radarStatusText").style.color = isWorking ? "#16a34a" : "#dc2626";
-    if (isWorking) startSendingHelperLocation();
+    $("statusLabelText").textContent = isWorking ? "Trạng thái: Đang làm việc" : "Trạng thái: Đang ngưng";
+    if (isWorking) {
+        startSendingHelperLocation();
+    } else if (helperLocationSender) {
+        clearInterval(helperLocationSender);
+        helperLocationSender = null;
+    }
 }
 
-// LIVE TRACKING THỢ
 function startSendingHelperLocation() {
     if (helperLocationSender) clearInterval(helperLocationSender);
-    helperLocationSender = setInterval(() => {
-        if (navigator.geolocation && currentTab === "helper" && activeSosId) {
-            navigator.geolocation.getCurrentPosition(async pos => {
-                try {
-                    await api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }) });
-                } catch (e) {}
-            });
-        }
+    helperLocationSender = setInterval(async () => {
+        if (currentTab !== "helper" || !activeSosId) return;
+        const pos = await getPosition();
+        if (!pos) return;
+        try {
+            await api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude }) });
+        } catch (e) {}
     }, 5000);
 }
 
-// LIVE TRACKING KHÁCH XEM BẢN ĐỒ
-function startTrackingHelperOnMap(sosId) {
+function stopTracking() {
     if (trackingInterval) clearInterval(trackingInterval);
+    trackingInterval = null;
+    trackingSosId = null;
+}
+
+function startTrackingHelperOnMap(sosId) {
+    if (trackingInterval && trackingSosId === sosId) return;
+    stopTracking();
+    trackingSosId = sosId;
     $("mapContainer").classList.remove("hidden");
-    trackingInterval = setInterval(async () => {
+    const tick = async () => {
         try {
             const data = await api(`/api/sos/${sosId}/helper-location`);
             if (data.latitude && data.longitude) {
@@ -280,28 +360,37 @@ function startTrackingHelperOnMap(sosId) {
                     mapInstance = L.map('map').setView([data.latitude, data.longitude], 15);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
                     markerInstance = L.marker([data.latitude, data.longitude]).addTo(mapInstance).bindPopup("Thợ đang tới!").openPopup();
+                    setTimeout(() => mapInstance && mapInstance.invalidateSize(), 200);
                 } else {
                     markerInstance.setLatLng([data.latitude, data.longitude]);
                     mapInstance.setView([data.latitude, data.longitude]);
                 }
             }
         } catch (e) {}
-    }, 4000);
+    };
+    tick();
+    trackingInterval = setInterval(tick, 4000);
 }
 
 async function loadNearbyServices() {
-    if (!navigator.geolocation) { alert("Chưa bật GPS!"); return; }
-    navigator.geolocation.getCurrentPosition(async pos => {
-        try {
-            const list = await api(`/api/nearby-services?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-            $("servicesList").innerHTML = list.map(item => `
-                <div style="border-bottom: 1px solid #f3f4f6; padding: 10px 0; display: flex; justify-content: space-between; align-items: center;">
-                    <div><b>${esc(item.name)}</b> (${esc(item.type)}).<br><span style="font-size:12px; color:#6b7280;">📍 ${esc(item.address)}</span></div>
-                    <a href="tel:${item.phone}" class="btn green small" style="text-decoration:none;">📞 Gọi</a>
-                </div>
-            `).join("");
-        } catch (e) { alert("Lỗi tải danh sách!"); }
-    });
+    const pos = await getPosition();
+    if (!pos) { alert("Chưa bật GPS!"); return; }
+    $("servicesList").innerHTML = '<div class="empty">Đang tìm quanh bạn...</div>';
+    try {
+        const list = await api(`/api/nearby-services?lat=${pos.latitude}&lon=${pos.longitude}&radius=5000`);
+        $("servicesList").innerHTML = list.map(item => {
+            const phone = (item.phone || "").replace(/[^\d+]/g, "");
+            const call = phone ? `<a href="tel:${phone}" class="btn green small" style="text-decoration:none;">📞 Gọi</a>` : "";
+            const go = `<a href="https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lon}" target="_blank" rel="noopener" class="btn blue small" style="text-decoration:none;">🧭 Đường đi</a>`;
+            return `
+            <div style="border-bottom: 1px solid #f3f4f6; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div><b>${esc(item.name)}</b> (${esc(item.type)})<br><span style="font-size:12px; color:#6b7280;">📍 ${item.distance_km} km${item.address ? " · " + esc(item.address) : ""}</span></div>
+                <div style="display:flex; gap:6px;">${call}${go}</div>
+            </div>`;
+        }).join("") || '<div class="empty">Không tìm thấy trạm xăng hay tiệm sửa xe trong bán kính 5 km.</div>';
+    } catch (e) {
+        $("servicesList").innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
 }
 
 async function sendSOS() {
@@ -309,12 +398,9 @@ async function sendSOS() {
     const price = parseFloat($("priceInput").value);
     if (!issue || !price) { alert("Nhập đủ thông tin!"); return; }
     let url = `/api/sos?issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            url += `&latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}`;
-            submitSOS(url);
-        }, () => submitSOS(url));
-    } else { submitSOS(url); }
+    const pos = await getPosition();
+    if (pos) url += `&latitude=${pos.latitude}&longitude=${pos.longitude}`;
+    await submitSOS(url);
 }
 
 async function submitSOS(url) {
@@ -325,33 +411,64 @@ async function submitSOS(url) {
 }
 
 async function backgroundRadarPoll() {
-    if (activeSosId || !$("workToggle").checked || $("autoDispatchSelect")?.value !== "ON") return;
+    if (radarBusy || activeSosId || !$("workToggle").checked || $("autoDispatchSelect").value !== "ON") return;
+    radarBusy = true;
     try {
-        const data = await api("/api/helper/incoming-order");
+        const pos = await getPosition();
+        let query = `?max_distance=${encodeURIComponent($("maxDistSelect").value)}`;
+        if (pos) query += `&lat=${pos.latitude}&lon=${pos.longitude}`;
+        const data = await api("/api/helper/incoming-order" + query);
         if (data.has_order && currentIncomingSosId !== data.sos_id) {
             currentIncomingSosId = data.sos_id;
-            $("modalBody").innerHTML = `Khách: <b>${esc(data.user_name)}</b><br>Sự cố: <b>${esc(data.issue_type)}</b><br>Giá: <b style="color:#dc2626;">${money(data.proposed_price)} VNĐ</b>`;
+            $("modalBody").innerHTML = `Khách: <b>${esc(data.user_name)}</b><br>Sự cố: <b>${esc(data.issue_type)}</b><br>Giá: <b style="color:#dc2626;">${money(data.proposed_price)} VNĐ</b><br>Cách bạn: <b>${data.distance_km} km</b>`;
             $("orderModal").classList.remove("hidden");
         }
-    } catch (e) {}
+    } catch (e) {} finally { radarBusy = false; }
 }
 
 async function ignoreOrder() {
     $("orderModal").classList.add("hidden");
-    if (currentIncomingSosId) await api(`/api/sos/${currentIncomingSosId}/ignore`, { method: "PUT" });
+    const id = currentIncomingSosId;
     currentIncomingSosId = null;
+    if (id) { try { await api(`/api/sos/${id}/ignore`, { method: "PUT" }); } catch (e) {} }
 }
 
 async function acceptDispatchedOrder() {
     $("orderModal").classList.add("hidden");
-    const price = prompt("Nhập giá đề nghị (VNĐ):", "50000");
-    if (!price) return;
-    try {
-        await api(`/api/sos/${currentIncomingSosId}/negotiate?final_price=${price}`, { method: "PUT" });
-        switchTab('helper');
-        await openChat(currentIncomingSosId);
-    } catch (e) { alert(e.message); }
+    const id = currentIncomingSosId;
     currentIncomingSosId = null;
+    if (!id) return;
+    const price = parseFloat(prompt("Nhập giá đề nghị (VNĐ):", "50000"));
+    if (!price || price <= 0) return;
+    try {
+        await api(`/api/sos/${id}/negotiate?final_price=${price}`, { method: "PUT" });
+        switchTab('helper');
+        await openChat(id);
+    } catch (e) { alert(e.message); }
+}
+
+async function proposePrice() {
+    const price = parseFloat(prompt("Nhập giá đề nghị mới (VNĐ):", "50000"));
+    if (!price || price <= 0) return;
+    try {
+        await api(`/api/sos/${activeSosId}/negotiate?final_price=${price}`, { method: "PUT" });
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function respondPrice(action) {
+    try {
+        await api(`/api/sos/${activeSosId}/respond?action=${action}`, { method: "PUT" });
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function completeOrder() {
+    if (!confirm("Xác nhận hoàn thành đơn cứu hộ?")) return;
+    try {
+        await api(`/api/sos/${activeSosId}/complete`, { method: "PUT" });
+        await refreshChat();
+    } catch (e) { alert(e.message); }
 }
 
 async function openChat(sosId) {
@@ -360,6 +477,76 @@ async function openChat(sosId) {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(refreshChat, 3000);
     await refreshChat();
+}
+
+function stars(rating, count) {
+    return rating === null || rating === undefined ? "chưa có đánh giá" : `⭐ ${rating} (${count})`;
+}
+
+function renderApproval(sos, isOwner, isHelper) {
+    const box = $("approvalSection");
+    let info = "";
+    if (sos.helper_id) {
+        if (isOwner) {
+            info = `<div class="note">Thợ: <b>${esc(sos.helper_name || "")}</b> · ${stars(sos.helper_rating, sos.helper_review_count)}${sos.helper_verified ? " · ✔ Đã xác minh" : ""}</div>`;
+        } else {
+            info = `<div class="note">Khách: <b>${esc(sos.user_name || "")}</b> · ${stars(sos.user_rating, sos.user_review_count)}</div>`;
+        }
+    }
+    if (sos.status === "COMPLETED") {
+        const existing = $("reviewBox");
+        if (existing && existing.dataset.sos == sos.id) return;
+        box.innerHTML = `<div class="note">Đơn đã hoàn thành.</div><div id="reviewBox" class="review-box" data-sos="${sos.id}"></div><button class="btn blue small" onclick="clearActive()" style="margin-bottom:8px;">Đóng khung chat</button>`;
+        loadReviewBox(sos);
+        return;
+    }
+    let html = info;
+    if (TERMINAL.includes(sos.status)) {
+        html += `<div class="note">Đơn đã kết thúc (${esc(sos.status)}).</div><button class="btn blue small" onclick="clearActive()" style="margin-bottom:8px;">Đóng khung chat</button>`;
+    } else if (sos.status === "PENDING") {
+        html += `<div class="note">${isOwner ? "Đang chờ thợ nhận đơn..." : ""}</div>`;
+    } else if (sos.status === "WAITING_APPROVAL" && isOwner) {
+        html += `<div class="note">Thợ đề nghị <b>${money(sos.agreed_price)} VNĐ</b></div><div style="display:flex; gap:8px; margin-bottom:8px;"><button class="btn green small" onclick="respondPrice('ACCEPT')">✅ Đồng ý</button><button class="btn grey small" onclick="respondPrice('REJECT')">❌ Từ chối</button></div>`;
+    } else if (sos.status === "WAITING_APPROVAL" && isHelper) {
+        html += `<div class="note">Đang chờ khách xác nhận mức giá ${money(sos.agreed_price)} VNĐ...</div>`;
+    } else if (sos.status === "CHATTING" && isHelper) {
+        html += `<div class="note">Khách chưa đồng ý giá.</div><button class="btn blue small" onclick="proposePrice()" style="margin-bottom:8px;">💰 Đề nghị giá khác</button>`;
+    } else if (sos.status === "NEGOTIATING") {
+        html += `<div class="note">Đã thống nhất giá <b>${money(sos.agreed_price)} VNĐ</b>.</div><button class="btn green small" onclick="completeOrder()" style="margin-bottom:8px;">🏁 Hoàn thành đơn</button>`;
+    }
+    box.innerHTML = html;
+}
+
+async function loadReviewBox(sos) {
+    const target = $("reviewBox");
+    if (!target) return;
+    try {
+        const mine = await api(`/api/sos/${sos.id}/review`);
+        if (mine.reviewed) {
+            target.innerHTML = `<div class="note">Bạn đã đánh giá ${"⭐".repeat(mine.rating)}${mine.comment ? " - " + esc(mine.comment) : ""}</div>`;
+            return;
+        }
+        target.innerHTML = `
+            <label style="font-size:13px; font-weight:bold;">Đánh giá đối phương</label>
+            <select id="reviewRating">
+                <option value="5">⭐⭐⭐⭐⭐ Tuyệt vời</option>
+                <option value="4">⭐⭐⭐⭐ Tốt</option>
+                <option value="3">⭐⭐⭐ Bình thường</option>
+                <option value="2">⭐⭐ Chưa tốt</option>
+                <option value="1">⭐ Rất tệ</option>
+            </select>
+            <input type="text" id="reviewComment" maxlength="300" placeholder="Nhận xét (không bắt buộc)">
+            <button class="btn green small" onclick="submitReview(${sos.id})">Gửi đánh giá</button>`;
+    } catch (e) {
+        target.innerHTML = "";
+    }
+}
+
+async function submitReview(sosId) {
+    try {
+        await api(`/api/sos/${sosId}/review`, { method: "POST", body: JSON.stringify({ rating: parseInt($("reviewRating").value), comment: $("reviewComment").value.trim() }) });
+        await loadReviewBox({ id: sosId });
+    } catch (e) { alert(e.message); }
 }
 
 async function refreshChat() {
@@ -371,15 +558,36 @@ async function refreshChat() {
         const isOwner = sos.user_id === uid;
         const isHelper = sos.helper_id === uid;
         const isCorrectTab = (currentTab === "victim" && isOwner) || (currentTab === "helper" && isHelper);
+        const finished = TERMINAL.includes(sos.status);
 
         $("chatSection").classList.toggle("hidden", !isCorrectTab);
         $("chatTitle").textContent = `💬 Đơn #${sos.id} (${sos.status})`;
+        $("chatInputRow").classList.toggle("hidden", finished);
+        renderApproval(sos, isOwner, isHelper);
 
-        if (isOwner && sos.helper_id) startTrackingHelperOnMap(sos.id);
+        const otherPhone = isOwner ? sos.helper_phone : sos.user_phone;
+        const callBtn = $("callBtn");
+        if (otherPhone) {
+            callBtn.href = "tel:" + otherPhone;
+            callBtn.classList.remove("hidden");
+        } else {
+            callBtn.classList.add("hidden");
+        }
+
+        if (isOwner && sos.helper_id && !finished) startTrackingHelperOnMap(sos.id); else stopTracking();
 
         const messages = await api(`/api/sos/${sos.id}/messages`);
-        $("chatContainer").innerHTML = messages.map(m => `<div class="msg"><b>${m.sender_id === uid ? 'Bạn' : 'Đối phương'}:</b> ${esc(m.content)}</div>`).join("");
-    } catch (e) {}
+        const box = $("chatContainer");
+        box.innerHTML = messages.map(m => `<div class="msg"><b>${m.sender_id === uid ? 'Bạn' : 'Đối phương'}:</b> ${esc(m.content)}</div>`).join("");
+        box.scrollTop = box.scrollHeight;
+
+        if (finished && pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    } catch (e) {
+        if (/không thuộc|Không tìm thấy/.test(e.message)) clearActive();
+    }
 }
 
 async function sendChat() {
@@ -414,20 +622,169 @@ async function openReportModal() {
 function clearActive() {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = null;
+    stopTracking();
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; markerInstance = null; }
+    $("mapContainer").classList.add("hidden");
+    $("approvalSection").innerHTML = "";
     activeSosId = null;
+    currentSos = null;
     sessionStorage.removeItem("active_sos_id");
     $("chatSection").classList.add("hidden");
 }
 
 function logout() { sessionStorage.clear(); window.location.replace("/static/login.html"); }
 
+let emailTimer = null;
+
+function setAccMsg(text) { $("accMsg").textContent = text; }
+
+async function loadAccount() {
+    setAccMsg("");
+    $("accPhone").textContent = sessionStorage.getItem("phone") || "";
+    try {
+        const me = await api("/api/auth/me");
+        if (me.email) sessionStorage.setItem("email", me.email); else sessionStorage.removeItem("email");
+        $("emailLinked").classList.toggle("hidden", !me.email);
+        $("emailForm").classList.toggle("hidden", !!me.email);
+        $("emailCurrent").textContent = me.email || "";
+        $("emailCodeRow").classList.add("hidden");
+    } catch (e) { setAccMsg(e.message); }
+}
+
+function startEmailCooldown(seconds) {
+    clearInterval(emailTimer);
+    const btn = $("emailSendBtn");
+    let left = seconds;
+    btn.disabled = true;
+    btn.textContent = `Gửi lại mã (${left}s)`;
+    emailTimer = setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+            clearInterval(emailTimer);
+            btn.disabled = false;
+            btn.textContent = "Gửi lại mã";
+        } else {
+            btn.textContent = `Gửi lại mã (${left}s)`;
+        }
+    }, 1000);
+}
+
+async function sendEmailCode() {
+    const email = $("emailInput").value.trim();
+    if (!email) { setAccMsg("Hãy nhập email!"); return; }
+    setAccMsg("Đang gửi mã...");
+    $("emailSendBtn").disabled = true;
+    try {
+        const data = await api("/api/auth/email/request", { method: "POST", body: JSON.stringify({ email }) });
+        $("emailCodeRow").classList.remove("hidden");
+        $("emailCodeInput").focus();
+        setAccMsg(data.dev_code ? `Chế độ thử nghiệm - mã của bạn: ${data.dev_code}` : `Đã gửi mã tới ${email}. Mã có hiệu lực ${Math.round(data.expires_in / 60)} phút.`);
+        startEmailCooldown(data.cooldown || 60);
+    } catch (e) {
+        setAccMsg(e.message);
+        $("emailSendBtn").disabled = false;
+    }
+}
+
+async function verifyEmailCode() {
+    const email = $("emailInput").value.trim();
+    const code = $("emailCodeInput").value.trim();
+    if (!/^\d{6}$/.test(code)) { setAccMsg("Mã xác nhận gồm đúng 6 chữ số."); return; }
+    try {
+        const data = await api("/api/auth/email/verify", { method: "POST", body: JSON.stringify({ email, code }) });
+        sessionStorage.setItem("email", data.email);
+        clearInterval(emailTimer);
+        $("emailInput").value = "";
+        $("emailCodeInput").value = "";
+        await loadAccount();
+        setAccMsg(data.message);
+    } catch (e) { setAccMsg(e.message); }
+}
+
+async function unlinkEmail() {
+    if (!confirm("Gỡ email khỏi tài khoản? Bạn sẽ không nhận thông báo qua email nữa.")) return;
+    try {
+        const data = await api("/api/auth/email", { method: "DELETE" });
+        await loadAccount();
+        setAccMsg(data.message);
+    } catch (e) { setAccMsg(e.message); }
+}
+
+function fileToDataUrl(file, maxSide = 900, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Không đọc được ảnh!")); };
+        img.src = url;
+    });
+}
+
+async function loadVerification() {
+    try {
+        const v = await api("/api/helper/verification");
+        const labels = { NONE: "Bạn chưa gửi hồ sơ xác minh.", PENDING: "⏳ Hồ sơ đang chờ duyệt.", APPROVED: "✔ Hồ sơ đã được duyệt. Khách sẽ thấy bạn là thợ đã xác minh.", REJECTED: "❌ Hồ sơ chưa được duyệt" + (v.note ? ": " + v.note : "") + ". Bạn có thể gửi lại." };
+        $("verifyStatus").textContent = labels[v.status] || v.status;
+        $("verifyForm").classList.toggle("hidden", v.status === "PENDING" || v.status === "APPROVED");
+        if (v.vehicle_info && !$("vehicleInfo").value) $("vehicleInfo").value = v.vehicle_info;
+    } catch (e) { $("verifyStatus").textContent = e.message; }
+}
+
+async function submitVerification() {
+    const vehicleInfo = $("vehicleInfo").value.trim();
+    const vehicleFile = $("vehiclePhotoFile").files[0];
+    const certFile = $("certPhotoFile").files[0];
+    if (!vehicleInfo) { alert("Hãy nhập thông tin xe!"); return; }
+    if (!vehicleFile) { alert("Hãy chọn ảnh xe!"); return; }
+    const btn = $("verifySubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Đang gửi...";
+    try {
+        const body = {
+            vehicle_info: vehicleInfo,
+            vehicle_photo: await fileToDataUrl(vehicleFile),
+            cert_photo: certFile ? await fileToDataUrl(certFile) : ""
+        };
+        await api("/api/helper/verify-submit", { method: "POST", body: JSON.stringify(body) });
+        await loadVerification();
+    } catch (e) { alert(e.message); }
+    btn.disabled = false;
+    btn.textContent = "Gửi hồ sơ";
+}
+
+async function checkHealth() {
+    try {
+        const res = await fetch(API + "/api/health");
+        if (!res.ok) throw new Error();
+        $("onlineBadge").textContent = "Online";
+        $("sysStatus").textContent = "Đã kết nối Server thành công";
+        $("sysStatus").style.color = "#16a34a";
+    } catch (e) {
+        $("onlineBadge").textContent = "Offline";
+        $("sysStatus").textContent = "Không kết nối được Server";
+        $("sysStatus").style.color = "#dc2626";
+    }
+}
+
 window.onload = async () => {
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+    loadSettings();
     $("workToggle").checked = localStorage.getItem("work_status") === "ON";
+    updateHelperStatusUI();
     $("accName").textContent = sessionStorage.getItem("name") || "Thành viên";
     $("idLabel").textContent = `SĐT ${sessionStorage.getItem("phone") || ""} - ID: ${sessionStorage.getItem("user_id")}`;
-    radarTimer = setInterval(backgroundRadarPoll, 3000);
-    let saved = sessionStorage.getItem("active_sos_id");
+    checkHealth();
+    setInterval(checkHealth, 30000);
+    radarTimer = setInterval(backgroundRadarPoll, 4000);
+    const saved = sessionStorage.getItem("active_sos_id");
     if (saved) await openChat(saved);
 };
 </script>
