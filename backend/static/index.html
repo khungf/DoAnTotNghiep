@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<title>P2P SOS Unified</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f9; color: #1f2937; }
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #f8f9fc; display: flex; flex-direction: column; }
+.header { background: linear-gradient(90deg, #dc2626, #f97316); color: #fff; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header h1 { margin: 0; font-size: 20px; }
+.gear-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #fff; font-size: 18px; }
+
+.tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; }
+.tab { flex: 1; padding: 12px 4px; border: none; background: #fff; font-size: 12px; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; text-align: center; }
+.tab.active { color: #dc2626; font-weight: bold; border-bottom-color: #dc2626; background: #fff; }
+
+.content { padding: 14px; flex: 1; }
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+.card.danger { background: #fff1f1; border-color: #fecaca; }
+.card.wait { background: #fff7ed; border-color: #fdba74; text-align: center; }
+.card h3 { margin: 0 0 10px; font-size: 16px; }
+.row { display: flex; gap: 10px; align-items: center; }
+.muted { font-size: 12px; color: #6b7280; font-weight: 600; }
+input, select { width: 100%; padding: 11px 14px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 15px; background: #fff; margin-bottom: 8px; }
+.btn { width: 100%; border: none; border-radius: 12px; padding: 12px; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; }
+.btn.red { background: #dc2626; font-size: 16px; padding: 14px; }
+.btn.blue { background: #2563eb; }
+.btn.orange { background: #f59e0b; }
+.btn.green { background: #16a34a; }
+.btn.grey { background: #6b7280; }
+.btn.small { width: auto; padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+.empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 15px; }
+
+.chat-card { border: 2px solid #93c5fd; background: #eff6ff; }
+.chat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.approval-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 12px; margin-bottom: 10px; border-radius: 12px; text-align: center; font-size: 14px; }
+.chat-box { height: 180px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 12px; padding: 8px; margin-bottom: 8px; font-size: 13px; }
+.msg { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #f3f4f6; }
+
+.switch-container { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e5e7eb; padding: 14px 16px; border-radius: 14px; margin-bottom: 14px; }
+.switch { position: relative; display: inline-block; width: 56px; height: 30px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 30px; }
+.slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+input:checked + .slider { background-color: #16a34a; }
+input:checked + .slider:before { transform: translateX(26px); }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+.modal-content { background: #fff; width: 92%; max-width: 450px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 85vh; display: flex; flex-direction: column; }
+.settings-tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 14px; }
+.s-tab { flex: 1; padding: 10px 4px; background: none; border: none; font-size: 13px; font-weight: bold; color: #6b7280; cursor: pointer; text-align: center; }
+.s-tab.active { color: #dc2626; border-bottom: 2px solid #dc2626; margin-bottom: -2px; }
+.s-pane { display: none; overflow-y: auto; max-height: 280px; }
+.s-pane.active { display: block; }
+.history-item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+
+.footer { text-align: center; padding: 12px; background: #e5e7eb; font-size: 13px; color: #374151; }
+.note { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 8px 10px; border-radius: 10px; font-size: 13px; margin-bottom: 8px; }
+.note:empty { display: none; }
+.settings-tabs { overflow-x: auto; }
+.s-tab { white-space: nowrap; padding: 10px 8px; font-size: 12px; }
+.s-pane { overflow-y: auto; }
+.review-box { border-top: 1px dashed #d1d5db; padding-top: 8px; margin-bottom: 8px; }
+.hidden { display: none !important; }
+.nav-panel { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+.nav-next { font-size: 15px; font-weight: bold; color: #1e3a8a; margin-bottom: 4px; }
+.nav-meta { font-size: 13px; color: #374151; margin-bottom: 8px; }
+.nav-actions { display: flex; gap: 8px; }
+.nav-actions a, .nav-actions button { flex: 1; text-align: center; text-decoration: none; }
+.pay-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 10px; margin-bottom: 10px; font-size: 14px; }
+.pay-box.paid { background: #ecfdf5; }
+.pay-box img { display: block; width: 100%; max-width: 260px; margin: 8px auto; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; }
+.pay-box .ok { color: #15803d; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <div class="header-left">
+            <button class="gear-btn" onclick="openSettingsModal()" title="Cài đặt">⚙️</button>
+            <h1>🚨 P2P SOS Unified</h1>
+        </div>
+        <span class="muted" id="onlineBadge" style="color:#fff;">Offline</span>
+    </div>
+
+    <div class="card" style="margin: 14px 14px 0 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <div><b id="accName"></b><br><span class="muted" id="idLabel"></span></div>
+        <button class="btn grey small" onclick="logout()">Đăng xuất</button>
+    </div>
+
+    <!-- SỐ KHẨN CẤP -->
+    <div class="card" style="background: #fef2f2; border-color: #fca5a5; text-align: center; margin: 14px 14px 0 14px;">
+        <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 13px;">🚨 SỐ ĐIỆN THOẠI KHẨN CẤP</div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+            <a href="tel:113" class="btn red" style="padding: 6px; font-size: 12px; text-decoration:none;">📞 113 (Công an)</a>
+            <a href="tel:115" class="btn blue" style="padding: 6px; font-size: 12px; background: #0284c7; text-decoration:none;">🚑 115 (Cấp cứu)</a>
+        </div>
+    </div>
+
+    <div class="tabs" style="margin-top: 14px;">
+        <button class="tab active" id="tabVictim" onclick="switchTab('victim')">⚠️ Gặp Nạn</button>
+        <button class="tab" id="tabHelper" onclick="switchTab('helper')">📍 Thợ Cứu Hộ</button>
+        <button class="tab" id="tabServices" onclick="switchTab('services')">🗺️ Cây Xăng/Tiệm Xe</button>
+    </div>
+
+    <div class="content">
+        <div class="notice hidden" id="noticeBox"></div>
+        <div class="card wait hidden" id="waitCard"></div>
+
+        <!-- TAB 1: GẶP NẠN -->
+        <div id="victimPanel">
+            <div class="card danger">
+                <h3>⚠️ Bạn đang gặp sự cố trên đường?</h3>
+                <input type="text" id="issueInput" placeholder="Mô tả sự cố (hết xăng, thủng lốp...)">
+                <input type="number" id="priceInput" placeholder="Giá đề xuất ban đầu (VNĐ)" value="50000">
+                <button class="btn red" onclick="sendSOS()">Phát Tín Hiệu Khẩn Cấp 🚨</button>
+            </div>
+        </div>
+
+        <!-- TAB 2: THỢ CỨU HỘ -->
+        <div id="helperPanel" class="hidden">
+            <div class="switch-container">
+                <div>
+                    <div style="font-weight: bold; font-size: 14px;" id="statusLabelText">Trạng thái: Đang ngưng</div>
+                    <div class="muted">Gạt công tắc để sẵn sàng nhận đơn</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="workToggle" onchange="toggleWorkStatus()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="card" style="text-align: center;">
+                <h3>📡 Radar quét đơn cứu hộ</h3>
+                <div id="radarStatusText" style="color: #dc2626; font-weight: bold;">🔴 Đang ngưng hoạt động</div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CÂY XĂNG & TIỆM XE -->
+        <div id="servicesPanel" class="hidden">
+            <div class="card">
+                <h3>🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn</h3>
+                <button class="btn blue small" onclick="loadNearbyServices()" style="margin-bottom:10px;">Quét địa điểm gần nhất 🔍</button>
+                <div id="servicesList"><div class="empty">Bấm nút trên để quét tìm địa điểm quanh vị trí của bạn.</div></div>
+            </div>
+        </div>
+
+        <!-- KHUNG CHAT & LIVE TRACKING -->
+        <div class="card chat-card hidden" id="chatSection">
+            <div id="mapContainer" class="hidden">
+                <div id="map" style="height: 160px; border-radius: 10px; margin-bottom: 10px;"></div>
+                <div id="navPanel" class="nav-panel hidden">
+                    <div class="nav-next" id="navNext">Đang tìm đường...</div>
+                    <div class="nav-meta" id="navMeta"></div>
+                    <div class="nav-actions">
+                        <a class="btn blue small" id="navGoogleBtn" href="#" target="_blank" rel="noopener">🧭 Mở Google Maps</a>
+                        <button class="btn grey small" id="navFitBtn" onclick="fitRoute()">🎯 Xem toàn tuyến</button>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-head">
+                <h3 id="chatTitle">💬 Khung chat</h3>
+                <a class="btn green small hidden" id="callBtn" href="#">📞 Gọi</a>
+            </div>
+            <div id="approvalSection"></div>
+            <div id="paymentSection"></div>
+            <div class="chat-box" id="chatContainer"></div>
+            <div class="row" id="chatInputRow">
+                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') sendChat()">
+                <button class="btn blue small" onclick="sendChat()">Gửi</button>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 8px;">
+                <button class="btn grey small" onclick="openCancelModal()" style="background: #6b7280;">🚫 Hủy đơn</button>
+                <button class="btn grey small" onclick="openReportModal()" style="background: #b91c1c;">⚠️ Báo cáo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP CÀI ĐẶT -->
+    <div class="modal-overlay hidden" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-title" style="color:#dc2626; font-size:18px; text-align:center; font-weight:bold; margin-bottom:15px;">⚙️ Cài Đặt & Lịch Sử</div>
+            <div class="settings-tabs">
+                <button class="s-tab active" onclick="switchSettingsTab('config', this)">Cài Đặt</button>
+                <button class="s-tab" onclick="switchSettingsTab('account', this)">Tài Khoản</button>
+                <button class="s-tab" onclick="switchSettingsTab('verify', this)">Xác Minh Thợ</button>
+                <button class="s-tab" onclick="switchSettingsTab('bank', this)">Nhận Tiền</button>
+                <button class="s-tab" onclick="switchSettingsTab('rescueHistory', this)">Lịch Sử Cứu Hộ</button>
+                <button class="s-tab" onclick="switchSettingsTab('issueHistory', this)">Lịch Sử Sự Cố</button>
+            </div>
+            <div class="s-pane active" id="paneConfig">
+                <label style="font-size:13px; font-weight:bold;">Tự động nhận đơn</label>
+                <select id="autoDispatchSelect" onchange="saveSettings()"><option value="ON">Bật 🟢</option><option value="OFF">Tắt 🔴</option></select>
+                <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Bán kính nhận đơn</label>
+                <select id="maxDistSelect" onchange="saveSettings()"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option></select>
+                <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Thông báo đẩy</label>
+                <div class="note" id="pushMsg">Nhận thông báo đơn mới và tin nhắn ngay cả khi đã đóng app. Trên iPhone, hãy thêm app vào Màn hình chính trước.</div>
+                <button class="btn blue small" id="pushBtn" onclick="enablePush()">🔔 Bật thông báo đẩy</button>
+            </div>
+            <div class="s-pane" id="paneAccount">
+                <div style="font-size:13px; margin-bottom:10px;">Số điện thoại: <b id="accPhone"></b></div>
+                <div id="emailLinked" class="hidden">
+                    <div style="font-size:13px; margin-bottom:8px;">Email nhận thông báo: <b id="emailCurrent"></b></div>
+                    <button class="btn grey small" onclick="unlinkEmail()">Gỡ email</button>
+                </div>
+                <div id="emailForm">
+                    <label style="font-size:13px; font-weight:bold;">Liên kết email để nhận thông báo đơn</label>
+                    <input type="email" id="emailInput" placeholder="ten@email.com" autocomplete="email">
+                    <button class="btn blue small" id="emailSendBtn" onclick="sendEmailCode()">Gửi mã xác nhận</button>
+                    <div id="emailCodeRow" class="hidden" style="margin-top:8px;">
+                        <input type="text" id="emailCodeInput" inputmode="numeric" maxlength="6" placeholder="Nhập mã 6 số">
+                        <button class="btn green small" onclick="verifyEmailCode()">Xác nhận email</button>
+                    </div>
+                </div>
+                <div class="note" id="accMsg" style="margin-top:10px;"></div>
+            </div>
+            <div class="s-pane" id="paneVerify">
+                <div class="note" id="verifyStatus"></div>
+                <div id="verifyForm">
+                    <label style="font-size:13px; font-weight:bold;">Thông tin xe (loại xe, biển số)</label>
+                    <input type="text" id="vehicleInfo" maxlength="120" placeholder="Ví dụ: Wave Alpha - 59X1-12345">
+                    <label style="font-size:13px; font-weight:bold;">Ảnh xe</label>
+                    <input type="file" id="vehiclePhotoFile" accept="image/*">
+                    <label style="font-size:13px; font-weight:bold;">Ảnh bằng lái hoặc chứng chỉ (không bắt buộc)</label>
+                    <input type="file" id="certPhotoFile" accept="image/*">
+                    <button class="btn blue small" id="verifySubmitBtn" onclick="submitVerification()">Gửi hồ sơ</button>
+                </div>
+            </div>
+            <div class="s-pane" id="paneBank">
+                <div class="note">Tài khoản này chỉ hiện cho khách khi họ chọn thanh toán chuyển khoản (kèm mã QR).</div>
+                <label style="font-size:13px; font-weight:bold;">Ngân hàng</label>
+                <select id="bankCode"><option value="">-- Chọn ngân hàng --</option></select>
+                <label style="font-size:13px; font-weight:bold;">Số tài khoản</label>
+                <input type="text" id="bankAccount" inputmode="numeric" maxlength="20" placeholder="Ví dụ: 0123456789">
+                <label style="font-size:13px; font-weight:bold;">Tên chủ tài khoản</label>
+                <input type="text" id="bankHolder" maxlength="60" placeholder="NGUYEN VAN A">
+                <button class="btn blue small" onclick="saveBank()">Lưu tài khoản</button>
+                <div class="note" id="bankMsg" style="margin-top:10px;"></div>
+            </div>
+            <div class="s-pane" id="paneRescueHistory"><div id="rescueHistoryList"><div class="empty">Đang tải...</div></div></div>
+            <div class="s-pane" id="paneIssueHistory"><div id="issueHistoryList"><div class="empty">Đang tải...</div></div></div>
+            <button class="btn blue" onclick="closeSettingsModal()" style="width:100%; margin-top:15px;">Đóng</button>
+        </div>
+    </div>
+
+    <!-- POPUP NỔ ĐƠN -->
+    <div class="modal-overlay hidden" id="orderModal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 style="color: #dc2626;">🔔 NỔ ĐƠN CỨU HỘ MỚI!</h3>
+            <div id="modalBody" style="font-size: 15px; margin: 10px 0;"></div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn grey" onclick="ignoreOrder()">Bỏ qua</button>
+                <button class="btn green" onclick="acceptDispatchedOrder()">Nhận Cuốc ✅</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">Trạng thái hệ thống: <b id="sysStatus" class="err">Đang kết nối...</b></div>
+</div>
+
+<script>
+const API = window.location.origin;
+const TERMINAL = ["COMPLETED", "CANCELLED", "EXPIRED"];
+let currentTab = "victim";
+let pollTimer = null, radarTimer = null, trackingInterval = null, trackingSosId = null, helperLocationSender = null;
+let activeSosId = null, currentIncomingSosId = null, currentSos = null, radarBusy = false;
+let mapInstance = null, markerInstance = null;
+let navTimer = null, navSosId = null, navBusy = false, navFitted = false;
+let ws = null, wsConnected = false, wsRetry = 0, wsPingTimer = null, wsClosedByUs = false, lastHelperPush = 0;
+let pollTick = 0, radarTick = 0;
+let navLine = null, navVictimMarker = null, navHelperMarker = null;
+
+if (!sessionStorage.getItem("user_id")) { window.location.replace("/static/login.html"); }
+const $ = id => document.getElementById(id);
+const money = n => Number(n).toLocaleString("vi-VN");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+async function api(path, options = {}) {
+    options.headers = Object.assign({ "Authorization": "Bearer " + (sessionStorage.getItem("token") || ""), "Content-Type": "application/json" }, options.headers);
+    const res = await fetch(API + path, options);
+    let body = null;
+    try { body = await res.json(); } catch (e) {}
+    if (res.status === 401) {
+        sessionStorage.clear();
+        window.location.replace("/static/login.html");
+        throw new Error(body?.detail || "Phiên đăng nhập hết hạn");
+    }
+    if (!res.ok) throw new Error(body?.detail || "Lỗi " + res.status);
+    return body;
+}
+
+function getPosition() {
+    return new Promise(resolve => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(p => resolve(p.coords), () => resolve(null), { timeout: 8000, maximumAge: 10000 });
+    });
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    $("victimPanel").classList.toggle("hidden", tab !== "victim");
+    $("helperPanel").classList.toggle("hidden", tab !== "helper");
+    $("servicesPanel").classList.toggle("hidden", tab !== "services");
+
+    $("tabVictim").classList.toggle("active", tab === "victim");
+    $("tabHelper").classList.toggle("active", tab === "helper");
+    $("tabServices").classList.toggle("active", tab === "services");
+
+    if (activeSosId) refreshChat();
+}
+
+function openSettingsModal() { $("settingsModal").classList.remove("hidden"); loadHistory(); }
+function closeSettingsModal() { $("settingsModal").classList.add("hidden"); }
+
+function switchSettingsTab(tabName, btn) {
+    document.querySelectorAll(".s-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".s-pane").forEach(p => p.classList.remove("active"));
+    const panes = { config: "paneConfig", account: "paneAccount", verify: "paneVerify", rescueHistory: "paneRescueHistory", issueHistory: "paneIssueHistory", bank: "paneBank" };
+    if (!panes[tabName]) return;
+    if (btn) btn.classList.add("active");
+    $(panes[tabName]).classList.add("active");
+    if (tabName === "account") loadAccount();
+    if (tabName === "verify") loadVerification();
+    if (tabName === "bank") loadBank();
+}
+
+function saveSettings() {
+    localStorage.setItem("auto_dispatch", $("autoDispatchSelect").value);
+    localStorage.setItem("max_dist", $("maxDistSelect").value);
+    syncAvailability();
+}
+
+function loadSettings() {
+    $("autoDispatchSelect").value = localStorage.getItem("auto_dispatch") || "ON";
+    $("maxDistSelect").value = localStorage.getItem("max_dist") || "10";
+}
+
+async function loadHistory() {
+    const uid = parseInt(sessionStorage.getItem("user_id"));
+    try {
+        const list = await api(`/api/users/${uid}/sos`);
+        const row = s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${esc(s.status)}</b></div>`;
+        $("rescueHistoryList").innerHTML = list.filter(s => s.role === "Thợ").map(row).join("") || '<div class="empty">Trống</div>';
+        $("issueHistoryList").innerHTML = list.filter(s => s.role === "Khách").map(row).join("") || '<div class="empty">Trống</div>';
+    } catch (e) {}
+}
+
+function toggleWorkStatus() {
+    localStorage.setItem("work_status", $("workToggle").checked ? "ON" : "OFF");
+    updateHelperStatusUI();
+    syncAvailability();
+}
+
+async function syncAvailability() {
+    const available = $("workToggle").checked && $("autoDispatchSelect").value === "ON";
+    try {
+        await api("/api/helper/availability", { method: "PUT", body: JSON.stringify({ available, max_distance: parseFloat($("maxDistSelect").value) || 10 }) });
+    } catch (e) {}
+}
+
+async function sendLocationNow() {
+    const pos = await getPosition();
+    if (!pos) return;
+    try { await api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude }) }); } catch (e) {}
+}
+
+function updateHelperStatusUI() {
+    const isWorking = $("workToggle").checked;
+    $("radarStatusText").textContent = isWorking ? "🟢 Đang quét đơn..." : "🔴 Đang ngưng";
+    $("radarStatusText").style.color = isWorking ? "#16a34a" : "#dc2626";
+    $("statusLabelText").textContent = isWorking ? "Trạng thái: Đang làm việc" : "Trạng thái: Đang ngưng";
+    if (isWorking) {
+        startSendingHelperLocation();
+        sendLocationNow();
+    } else if (helperLocationSender) {
+        clearInterval(helperLocationSender);
+        helperLocationSender = null;
+    }
+}
+
+function startSendingHelperLocation() {
+    if (helperLocationSender) clearInterval(helperLocationSender);
+    let tick = 0;
+    helperLocationSender = setInterval(async () => {
+        tick++;
+        const myId = parseInt(sessionStorage.getItem("user_id"));
+        const onJob = currentSos && currentSos.helper_id === myId && !TERMINAL.includes(currentSos.status);
+        // Đang chạy đơn: gửi mỗi 5 giây. Đang chờ đơn: gửi mỗi 15 giây để thợ ở gần nhận được thông báo.
+        if (!onJob && tick % 3 !== 0) return;
+        const pos = await getPosition();
+        if (!pos) return;
+        try {
+            await api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude }) });
+        } catch (e) {}
+    }, 5000);
+}
+
+function stopTracking() {
+    if (trackingInterval) clearInterval(trackingInterval);
+    trackingInterval = null;
+    trackingSosId = null;
+}
+
+function startTrackingHelperOnMap(sosId) {
+    if (trackingInterval && trackingSosId === sosId) return;
+    stopTracking();
+    trackingSosId = sosId;
+    $("mapContainer").classList.remove("hidden");
+    const tick = async () => {
+        if (wsConnected && Date.now() - lastHelperPush < 15000) return;
+        try {
+            const data = await api(`/api/sos/${sosId}/helper-location`);
+            if (data.latitude && data.longitude) {
+                if (!mapInstance) {
+                    mapInstance = L.map('map').setView([data.latitude, data.longitude], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+                    markerInstance = L.marker([data.latitude, data.longitude]).addTo(mapInstance).bindPopup("Thợ đang tới!").openPopup();
+                    setTimeout(() => mapInstance && mapInstance.invalidateSize(), 200);
+                } else {
+                    markerInstance.setLatLng([data.latitude, data.longitude]);
+                    mapInstance.setView([data.latitude, data.longitude]);
+                }
+            }
+        } catch (e) {}
+    };
+    tick();
+    trackingInterval = setInterval(tick, 4000);
+}
+
+function ensureMap(lat, lon) {
+    if (!mapInstance) {
+        mapInstance = L.map('map').setView([lat, lon], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(mapInstance);
+        setTimeout(() => mapInstance && mapInstance.invalidateSize(), 200);
+    }
+    return mapInstance;
+}
+
+function fmtDist(m) {
+    return m >= 1000 ? (m / 1000).toFixed(1) + " km" : (Math.max(10, Math.round(m / 10) * 10)) + " m";
+}
+
+function stopNavigation() {
+    if (!navSosId) return;
+    if (navTimer) clearInterval(navTimer);
+    navTimer = null;
+    navSosId = null;
+    navBusy = false;
+    navFitted = false;
+    if (mapInstance) {
+        [navLine, navVictimMarker, navHelperMarker].forEach(layer => { if (layer) mapInstance.removeLayer(layer); });
+    }
+    navLine = navVictimMarker = navHelperMarker = null;
+    $("navPanel").classList.add("hidden");
+    $("map").classList.remove("hidden");
+    $("map").style.height = "160px";
+    $("mapContainer").classList.add("hidden");
+}
+
+function startHelperNavigation(sos) {
+    if (navSosId === sos.id) return;
+    stopNavigation();
+    navSosId = sos.id;
+    $("mapContainer").classList.remove("hidden");
+    $("navPanel").classList.remove("hidden");
+
+    const hasLocation = sos.latitude != null && sos.longitude != null;
+    $("map").classList.toggle("hidden", !hasLocation);
+    $("navFitBtn").classList.toggle("hidden", !hasLocation);
+    if (!hasLocation) {
+        $("navNext").textContent = "Khách không chia sẻ vị trí, hãy hỏi địa chỉ trong khung chat.";
+        $("navMeta").textContent = "";
+        $("navGoogleBtn").classList.add("hidden");
+        return;
+    }
+
+    $("navGoogleBtn").classList.remove("hidden");
+    $("navGoogleBtn").href = `https://www.google.com/maps/dir/?api=1&destination=${sos.latitude},${sos.longitude}&travelmode=driving`;
+    $("navNext").textContent = "Đang tìm đường...";
+    $("navMeta").textContent = "";
+    $("map").style.height = "220px";
+
+    const map = ensureMap(sos.latitude, sos.longitude);
+    navVictimMarker = L.marker([sos.latitude, sos.longitude]).addTo(map).bindPopup("Vị trí khách cần cứu hộ");
+    map.invalidateSize();
+    map.setView([sos.latitude, sos.longitude], 15);
+
+    navTick();
+    navTimer = setInterval(navTick, 10000);
+}
+
+async function navTick() {
+    if (navBusy || !navSosId) return;
+    navBusy = true;
+    const sosId = navSosId;
+    try {
+        const pos = await getPosition();
+        if (!pos) {
+            $("navNext").textContent = "Chưa lấy được vị trí GPS của bạn. Hãy bật định vị.";
+            return;
+        }
+        if (!helperLocationSender) {
+            api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude }) }).catch(() => {});
+        }
+        const route = await api(`/api/sos/${sosId}/route?lat=${pos.latitude}&lon=${pos.longitude}`);
+        if (sosId !== navSosId) return;
+        drawRoute(route, pos);
+    } catch (e) {
+        if (sosId === navSosId) $("navNext").textContent = e.message;
+    } finally {
+        navBusy = false;
+    }
+}
+
+function drawRoute(route, pos) {
+    const map = mapInstance;
+    if (!map) return;
+    const style = { color: "#2563eb", weight: 5, opacity: 0.85, dashArray: route.approximate ? "8 8" : null };
+    if (navLine) { navLine.setLatLngs(route.coordinates); navLine.setStyle(style); }
+    else navLine = L.polyline(route.coordinates, style).addTo(map);
+
+    const here = [pos.latitude, pos.longitude];
+    if (navHelperMarker) navHelperMarker.setLatLng(here);
+    else navHelperMarker = L.circleMarker(here, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map).bindPopup("Bạn đang ở đây");
+
+    if (!navFitted) {
+        map.invalidateSize();
+        map.fitBounds(navLine.getBounds(), { padding: [24, 24] });
+        navFitted = true;
+    }
+
+    const meta = `🚗 Còn ${route.distance_km} km · khoảng ${route.duration_min} phút`;
+    $("navMeta").textContent = route.approximate ? meta + " (ước tính theo đường chim bay)" : meta;
+
+    if (route.distance_km < 0.05) {
+        $("navNext").textContent = "📍 Bạn đã tới nơi!";
+    } else if (route.steps.length >= 2) {
+        $("navNext").textContent = `${route.steps[1].instruction} sau ${fmtDist(route.steps[0].distance_m)}`;
+    } else {
+        $("navNext").textContent = "Đi theo đường màu xanh trên bản đồ.";
+    }
+}
+
+function fitRoute() {
+    if (mapInstance && navLine) {
+        mapInstance.invalidateSize();
+        mapInstance.fitBounds(navLine.getBounds(), { padding: [24, 24] });
+    }
+}
+
+async function loadNearbyServices() {
+    const pos = await getPosition();
+    if (!pos) { alert("Chưa bật GPS!"); return; }
+    $("servicesList").innerHTML = '<div class="empty">Đang tìm quanh bạn...</div>';
+    try {
+        const list = await api(`/api/nearby-services?lat=${pos.latitude}&lon=${pos.longitude}&radius=5000`);
+        $("servicesList").innerHTML = list.map(item => {
+            const phone = (item.phone || "").replace(/[^\d+]/g, "");
+            const call = phone ? `<a href="tel:${phone}" class="btn green small" style="text-decoration:none;">📞 Gọi</a>` : "";
+            const go = `<a href="https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lon}" target="_blank" rel="noopener" class="btn blue small" style="text-decoration:none;">🧭 Đường đi</a>`;
+            return `
+            <div style="border-bottom: 1px solid #f3f4f6; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div><b>${esc(item.name)}</b> (${esc(item.type)})<br><span style="font-size:12px; color:#6b7280;">📍 ${item.distance_km} km${item.address ? " · " + esc(item.address) : ""}</span></div>
+                <div style="display:flex; gap:6px;">${call}${go}</div>
+            </div>`;
+        }).join("") || '<div class="empty">Không tìm thấy trạm xăng hay tiệm sửa xe trong bán kính 5 km.</div>';
+    } catch (e) {
+        $("servicesList").innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    }
+}
+
+async function sendSOS() {
+    const issue = $("issueInput").value.trim();
+    const price = parseFloat($("priceInput").value);
+    if (!issue || !price) { alert("Nhập đủ thông tin!"); return; }
+    let url = `/api/sos?issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
+    const pos = await getPosition();
+    if (pos) url += `&latitude=${pos.latitude}&longitude=${pos.longitude}`;
+    await submitSOS(url);
+}
+
+async function submitSOS(url) {
+    try {
+        const data = await api(url, { method: "POST" });
+        await openChat(data.sos_id);
+    } catch (e) { alert(e.message); }
+}
+
+async function backgroundRadarPoll() {
+    if (radarBusy || activeSosId || !$("workToggle").checked || $("autoDispatchSelect").value !== "ON") return;
+    radarBusy = true;
+    try {
+        const pos = await getPosition();
+        let query = `?max_distance=${encodeURIComponent($("maxDistSelect").value)}`;
+        if (pos) query += `&lat=${pos.latitude}&lon=${pos.longitude}`;
+        const data = await api("/api/helper/incoming-order" + query);
+        if (data.has_order && currentIncomingSosId !== data.sos_id) {
+            currentIncomingSosId = data.sos_id;
+            $("modalBody").innerHTML = `Khách: <b>${esc(data.user_name)}</b><br>Sự cố: <b>${esc(data.issue_type)}</b><br>Giá: <b style="color:#dc2626;">${money(data.proposed_price)} VNĐ</b><br>Cách bạn: <b>${data.distance_km} km</b>`;
+            $("orderModal").classList.remove("hidden");
+        }
+    } catch (e) {} finally { radarBusy = false; }
+}
+
+async function ignoreOrder() {
+    $("orderModal").classList.add("hidden");
+    const id = currentIncomingSosId;
+    currentIncomingSosId = null;
+    if (id) { try { await api(`/api/sos/${id}/ignore`, { method: "PUT" }); } catch (e) {} }
+}
+
+async function acceptDispatchedOrder() {
+    $("orderModal").classList.add("hidden");
+    const id = currentIncomingSosId;
+    currentIncomingSosId = null;
+    if (!id) return;
+    const price = parseFloat(prompt("Nhập giá đề nghị (VNĐ):", "50000"));
+    if (!price || price <= 0) return;
+    try {
+        await api(`/api/sos/${id}/negotiate?final_price=${price}`, { method: "PUT" });
+        switchTab('helper');
+        await openChat(id);
+    } catch (e) { alert(e.message); }
+}
+
+async function proposePrice() {
+    const price = parseFloat(prompt("Nhập giá đề nghị mới (VNĐ):", "50000"));
+    if (!price || price <= 0) return;
+    try {
+        await api(`/api/sos/${activeSosId}/negotiate?final_price=${price}`, { method: "PUT" });
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function respondPrice(action, expectedPrice) {
+    try {
+        await api(`/api/sos/${activeSosId}/respond?action=${action}&expected_price=${encodeURIComponent(expectedPrice)}`, { method: "PUT" });
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function completeOrder() {
+    if (!confirm("Xác nhận hoàn thành đơn cứu hộ?")) return;
+    try {
+        await api(`/api/sos/${activeSosId}/complete`, { method: "PUT" });
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function openChat(sosId) {
+    activeSosId = Number(sosId);
+    sessionStorage.setItem("active_sos_id", activeSosId);
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(() => { pollTick++; if (!wsConnected || pollTick % 6 === 0) refreshChat(); }, 3000);
+    await refreshChat();
+}
+
+function stars(rating, count) {
+    return rating === null || rating === undefined ? "chưa có đánh giá" : `⭐ ${rating} (${count})`;
+}
+
+function renderApproval(sos, isOwner, isHelper) {
+    const box = $("approvalSection");
+    let info = "";
+    if (sos.helper_id) {
+        if (isOwner) {
+            info = `<div class="note">Thợ: <b>${esc(sos.helper_name || "")}</b> · ${stars(sos.helper_rating, sos.helper_review_count)}${sos.helper_verified ? " · ✔ Đã xác minh" : ""}</div>`;
+        } else {
+            info = `<div class="note">Khách: <b>${esc(sos.user_name || "")}</b> · ${stars(sos.user_rating, sos.user_review_count)}</div>`;
+        }
+    }
+    if (sos.status === "COMPLETED") {
+        const existing = $("reviewBox");
+        if (existing && existing.dataset.sos == sos.id) return;
+        box.innerHTML = `<div class="note">Đơn đã hoàn thành.</div><div id="reviewBox" class="review-box" data-sos="${sos.id}"></div><button class="btn blue small" onclick="closeCompleted()" style="margin-bottom:8px;">Đóng khung chat</button>`;
+        loadReviewBox(sos);
+        return;
+    }
+    let html = info;
+    if (TERMINAL.includes(sos.status)) {
+        html += `<div class="note">Đơn đã kết thúc (${esc(sos.status)}).</div><button class="btn blue small" onclick="clearActive()" style="margin-bottom:8px;">Đóng khung chat</button>`;
+    } else if (sos.status === "PENDING") {
+        html += `<div class="note">${isOwner ? "Đang chờ thợ nhận đơn..." : ""}</div>`;
+    } else if (sos.status === "WAITING_APPROVAL" && isOwner) {
+        html += `<div class="note">Thợ đề nghị <b>${money(sos.agreed_price)} VNĐ</b></div><div style="display:flex; gap:8px; margin-bottom:8px;"><button class="btn green small" onclick="respondPrice('ACCEPT', ${sos.agreed_price})">✅ Đồng ý</button><button class="btn grey small" onclick="respondPrice('REJECT', ${sos.agreed_price})">❌ Từ chối</button></div>`;
+    } else if (sos.status === "WAITING_APPROVAL" && isHelper) {
+        html += `<div class="note">Đang chờ khách xác nhận mức giá ${money(sos.agreed_price)} VNĐ...</div>`;
+    } else if (sos.status === "CHATTING" && isHelper) {
+        html += `<div class="note">Khách chưa đồng ý giá.</div><button class="btn blue small" onclick="proposePrice()" style="margin-bottom:8px;">💰 Đề nghị giá khác</button>`;
+    } else if (sos.status === "NEGOTIATING") {
+        html += `<div class="note">Đã thống nhất giá <b>${money(sos.agreed_price)} VNĐ</b>.</div><button class="btn green small" onclick="completeOrder()" style="margin-bottom:8px;">🏁 Hoàn thành đơn</button>`;
+    }
+    box.innerHTML = html;
+}
+
+async function loadReviewBox(sos) {
+    const target = $("reviewBox");
+    if (!target) return;
+    try {
+        const mine = await api(`/api/sos/${sos.id}/review`);
+        if (mine.reviewed) {
+            target.innerHTML = `<div class="note">Bạn đã đánh giá ${"⭐".repeat(mine.rating)}${mine.comment ? " - " + esc(mine.comment) : ""}</div>`;
+            return;
+        }
+        target.innerHTML = `
+            <label style="font-size:13px; font-weight:bold;">Đánh giá đối phương</label>
+            <select id="reviewRating">
+                <option value="5">⭐⭐⭐⭐⭐ Tuyệt vời</option>
+                <option value="4">⭐⭐⭐⭐ Tốt</option>
+                <option value="3">⭐⭐⭐ Bình thường</option>
+                <option value="2">⭐⭐ Chưa tốt</option>
+                <option value="1">⭐ Rất tệ</option>
+            </select>
+            <input type="text" id="reviewComment" maxlength="300" placeholder="Nhận xét (không bắt buộc)">
+            <button class="btn green small" onclick="submitReview(${sos.id})">Gửi đánh giá</button>`;
+    } catch (e) {
+        target.innerHTML = "";
+    }
+}
+
+async function submitReview(sosId) {
+    try {
+        await api(`/api/sos/${sosId}/review`, { method: "POST", body: JSON.stringify({ rating: parseInt($("reviewRating").value), comment: $("reviewComment").value.trim() }) });
+        await loadReviewBox({ id: sosId });
+    } catch (e) { alert(e.message); }
+}
+
+async function refreshChat() {
+    if (!activeSosId) return;
+    try {
+        const sos = await api(`/api/sos/${activeSosId}`);
+        currentSos = sos;
+        const uid = parseInt(sessionStorage.getItem("user_id"));
+        const isOwner = sos.user_id === uid;
+        const isHelper = sos.helper_id === uid;
+        const isCorrectTab = (currentTab === "victim" && isOwner) || (currentTab === "helper" && isHelper);
+        const finished = TERMINAL.includes(sos.status);
+
+        $("chatSection").classList.toggle("hidden", !isCorrectTab);
+        $("chatTitle").textContent = `💬 Đơn #${sos.id} (${sos.status})`;
+        $("chatInputRow").classList.toggle("hidden", finished);
+        renderApproval(sos, isOwner, isHelper);
+        renderPayment(sos, isOwner, isHelper);
+
+        const otherPhone = isOwner ? sos.helper_phone : sos.user_phone;
+        const callBtn = $("callBtn");
+        if (otherPhone) {
+            callBtn.href = "tel:" + otherPhone;
+            callBtn.classList.remove("hidden");
+        } else {
+            callBtn.classList.add("hidden");
+        }
+
+        if (isOwner && sos.helper_id && !finished) startTrackingHelperOnMap(sos.id); else stopTracking();
+        if (isHelper && isCorrectTab && !finished) startHelperNavigation(sos); else stopNavigation();
+
+        const messages = await api(`/api/sos/${sos.id}/messages`);
+        const box = $("chatContainer");
+        box.innerHTML = messages.map(m => `<div class="msg"><b>${m.sender_id === uid ? 'Bạn' : 'Đối phương'}:</b> ${esc(m.content)}</div>`).join("");
+        box.scrollTop = box.scrollHeight;
+
+        const awaitingPayment = sos.status === "COMPLETED" && sos.payment_status !== "PAID";
+        if (finished && !awaitingPayment && pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    } catch (e) {
+        if (/không thuộc|Không tìm thấy/.test(e.message)) clearActive();
+    }
+}
+
+async function sendChat() {
+    const content = $("chatInput").value.trim();
+    if (!activeSosId || !content) return;
+    try {
+        await api(`/api/sos/${activeSosId}/messages`, { method: "POST", body: JSON.stringify({ content }) });
+        $("chatInput").value = "";
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function openCancelModal() {
+    const reason = prompt("Lý do hủy đơn:");
+    if (!reason) return;
+    try {
+        await api(`/api/sos/${activeSosId}/cancel`, { method: "PUT", body: JSON.stringify({ reason }) });
+        alert("Đã hủy đơn.");
+        clearActive();
+    } catch (e) { alert(e.message); }
+}
+
+async function openReportModal() {
+    const reason = prompt("Nội dung báo cáo:");
+    if (!reason) return;
+    try {
+        const res = await api(`/api/sos/${activeSosId}/report`, { method: "POST", body: JSON.stringify({ reason }) });
+        alert(res.message);
+    } catch (e) { alert(e.message); }
+}
+
+function clearActive() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+    stopTracking();
+    stopNavigation();
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; markerInstance = null; }
+    $("mapContainer").classList.add("hidden");
+    $("approvalSection").innerHTML = "";
+    $("paymentSection").innerHTML = "";
+    $("paymentSection").dataset.sig = "";
+    activeSosId = null;
+    currentSos = null;
+    sessionStorage.removeItem("active_sos_id");
+    $("chatSection").classList.add("hidden");
+}
+
+async function logout() {
+    wsClosedByUs = true;
+    if (ws) { try { ws.close(); } catch (e) {} }
+    try { await api("/api/helper/availability", { method: "PUT", body: JSON.stringify({ available: false, max_distance: 10 }) }); } catch (e) {}
+    try {
+        const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+        const sub = reg ? await reg.pushManager.getSubscription() : null;
+        if (sub) await api("/api/push/unsubscribe", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) });
+    } catch (e) {}
+    sessionStorage.clear();
+    window.location.replace("/static/login.html");
+}
+
+
+/* ===================== REALTIME (WebSocket) ===================== */
+function connectRealtime() {
+    const token = sessionStorage.getItem("token");
+    if (!token || wsClosedByUs) return;
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+    const proto = window.location.protocol === "https:" ? "wss://" : "ws://";
+    ws = new WebSocket(proto + window.location.host + "/api/ws");
+    ws.onopen = () => ws.send(JSON.stringify({ token }));
+    ws.onmessage = ev => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch (e) { return; }
+        handleRealtime(msg);
+    };
+    ws.onclose = ev => {
+        wsConnected = false;
+        clearInterval(wsPingTimer);
+        if (wsClosedByUs || ev.code === 4401) return;
+        setTimeout(connectRealtime, Math.min(30000, 1000 * Math.pow(2, wsRetry++)));
+    };
+    ws.onerror = () => {};
+}
+
+function handleRealtime(msg) {
+    if (msg.type === "ready") {
+        wsConnected = true;
+        wsRetry = 0;
+        clearInterval(wsPingTimer);
+        wsPingTimer = setInterval(() => { if (ws && ws.readyState === WebSocket.OPEN) ws.send("ping"); }, 25000);
+        backgroundRadarPoll();
+        if (activeSosId) refreshChat();
+    } else if (msg.type === "new_sos") {
+        backgroundRadarPoll();
+    } else if (msg.type === "sos_update") {
+        if (activeSosId === msg.sos_id) refreshChat();
+    } else if (msg.type === "helper_location") {
+        if (trackingSosId === msg.sos_id && mapInstance && markerInstance) {
+            lastHelperPush = Date.now();
+            markerInstance.setLatLng([msg.latitude, msg.longitude]);
+            mapInstance.setView([msg.latitude, msg.longitude]);
+        }
+    }
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    connectRealtime();
+    if (activeSosId) refreshChat();
+    backgroundRadarPoll();
+});
+
+/* ===================== THÔNG BÁO ĐẨY ===================== */
+function setPushMsg(text) { $("pushMsg").textContent = text; }
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const raw = atob((base64String + padding).replace(/-/g, "+").replace(/_/g, "/"));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function subscribePush() {
+    const { public_key } = await api("/api/push/public-key");
+    if (!public_key) throw new Error("Server chưa bật thông báo đẩy.");
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(public_key) });
+    await api("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub.toJSON()) });
+}
+
+async function enablePush() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+        setPushMsg("Trình duyệt này chưa hỗ trợ thông báo đẩy. Trên iPhone hãy thêm app vào Màn hình chính rồi mở lại từ biểu tượng đó.");
+        return;
+    }
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") { setPushMsg("Bạn chưa cho phép thông báo. Hãy bật quyền Thông báo cho trang này trong cài đặt trình duyệt."); return; }
+        await subscribePush();
+        setPushMsg("✅ Đã bật thông báo đẩy trên thiết bị này.");
+    } catch (e) { setPushMsg(e.message); }
+}
+
+async function resubscribePushIfGranted() {
+    // Đăng ký lại để gắn thiết bị này với tài khoản đang đăng nhập (kể cả khi đổi tài khoản).
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    try { await subscribePush(); setPushMsg("✅ Thông báo đẩy đang bật trên thiết bị này."); } catch (e) {}
+}
+
+/* ===================== THANH TOÁN ===================== */
+function renderPayment(sos, isOwner, isHelper) {
+    const box = $("paymentSection");
+    const payable = sos.agreed_price && ["NEGOTIATING", "COMPLETED"].includes(sos.status);
+    const sig = JSON.stringify([payable, sos.status, sos.agreed_price, sos.payment_method, sos.payment_status, sos.payment_qr_url, sos.helper_has_bank, isOwner, isHelper]);
+    if (box.dataset.sig === sig) return;
+    box.dataset.sig = sig;
+    if (!payable) { box.innerHTML = ""; return; }
+
+    const label = { CASH: "tiền mặt", TRANSFER: "chuyển khoản" };
+    const paid = sos.payment_status === "PAID";
+    let html = `<div class="pay-box${paid ? " paid" : ""}"><b>💳 Thanh toán: ${money(sos.agreed_price)} VNĐ</b><br>`;
+
+    if (paid) {
+        html += `<span class="ok">✅ Đã thanh toán bằng ${label[sos.payment_method] || "tiền mặt"}</span>`;
+    } else if (isOwner) {
+        html += `<select id="payMethod" onchange="setPaymentMethod(this.value)" style="margin-top:8px;">
+            <option value="">-- Chọn cách thanh toán --</option>
+            <option value="CASH" ${sos.payment_method === "CASH" ? "selected" : ""}>💵 Tiền mặt</option>
+            <option value="TRANSFER" ${sos.payment_method === "TRANSFER" ? "selected" : ""}>🏦 Chuyển khoản (quét QR)</option>
+        </select>`;
+        if (sos.payment_method === "TRANSFER" && sos.payment_qr_url && sos.bank_info) {
+            html += `<img src="${esc(sos.payment_qr_url)}" alt="Mã QR chuyển khoản">
+                <div style="font-size:13px;">${esc(sos.bank_info.bank_code)} · STK <b>${esc(sos.bank_info.account)}</b><br>Chủ TK: ${esc(sos.bank_info.holder || "")}<br>Nội dung: SOS ${sos.id}</div>
+                <div class="muted" style="margin-top:6px;">Sau khi chuyển, thợ sẽ xác nhận đã nhận tiền. Hãy kiểm tra đúng số tiền và tên người nhận trước khi chuyển.</div>`;
+        } else if (sos.payment_method === "CASH") {
+            html += `<div class="muted" style="margin-top:6px;">Hãy đưa tiền mặt cho thợ, thợ sẽ xác nhận đã nhận.</div>`;
+        }
+    } else if (isHelper) {
+        const method = sos.payment_method ? `Khách chọn: <b>${label[sos.payment_method]}</b>` : "Khách chưa chọn cách thanh toán.";
+        html += `<div style="margin:6px 0;">${method}</div>`;
+        if (!sos.helper_has_bank) html += `<div class="muted" style="margin-bottom:6px;">Bạn chưa thêm tài khoản ngân hàng. Vào ⚙️ Cài đặt → Nhận Tiền để khách có thể chuyển khoản.</div>`;
+        html += `<button class="btn green small" onclick="confirmPaid()">✅ Tôi đã nhận đủ tiền</button>`;
+    }
+    box.innerHTML = html + `</div>`;
+}
+
+async function setPaymentMethod(method) {
+    if (!method) return;
+    try {
+        await api(`/api/sos/${activeSosId}/payment-method`, { method: "PUT", body: JSON.stringify({ method }) });
+    } catch (e) { alert(e.message); }
+    await refreshChat();
+}
+
+async function confirmPaid() {
+    if (!confirm("Xác nhận bạn đã nhận ĐỦ tiền từ khách? Thao tác này không hoàn tác được.")) return;
+    try {
+        await api(`/api/sos/${activeSosId}/confirm-paid`, { method: "PUT" });
+    } catch (e) { alert(e.message); }
+    await refreshChat();
+}
+
+function closeCompleted() {
+    if (currentSos && currentSos.payment_status !== "PAID" && !confirm("Đơn này chưa được xác nhận thanh toán. Bạn vẫn muốn đóng khung chat?")) return;
+    clearActive();
+}
+
+async function loadBank() {
+    $("bankMsg").textContent = "";
+    try {
+        const b = await api("/api/helper/bank");
+        const select = $("bankCode");
+        if (select.options.length <= 1) {
+            Object.entries(b.banks).forEach(([code, name]) => select.add(new Option(`${name} (${code})`, code)));
+        }
+        select.value = b.bank_code;
+        $("bankAccount").value = b.bank_account;
+        $("bankHolder").value = b.bank_holder;
+    } catch (e) { $("bankMsg").textContent = e.message; }
+}
+
+async function saveBank() {
+    try {
+        const data = await api("/api/helper/bank", { method: "PUT", body: JSON.stringify({ bank_code: $("bankCode").value, bank_account: $("bankAccount").value, bank_holder: $("bankHolder").value }) });
+        $("bankMsg").textContent = data.message;
+    } catch (e) { $("bankMsg").textContent = e.message; }
+}
+
+let emailTimer = null;
+
+function setAccMsg(text) { $("accMsg").textContent = text; }
+
+async function loadAccount() {
+    setAccMsg("");
+    $("accPhone").textContent = sessionStorage.getItem("phone") || "";
+    try {
+        const me = await api("/api/auth/me");
+        if (me.email) sessionStorage.setItem("email", me.email); else sessionStorage.removeItem("email");
+        $("emailLinked").classList.toggle("hidden", !me.email);
+        $("emailForm").classList.toggle("hidden", !!me.email);
+        $("emailCurrent").textContent = me.email || "";
+        $("emailCodeRow").classList.add("hidden");
+    } catch (e) { setAccMsg(e.message); }
+}
+
+function startEmailCooldown(seconds) {
+    clearInterval(emailTimer);
+    const btn = $("emailSendBtn");
+    let left = seconds;
+    btn.disabled = true;
+    btn.textContent = `Gửi lại mã (${left}s)`;
+    emailTimer = setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+            clearInterval(emailTimer);
+            btn.disabled = false;
+            btn.textContent = "Gửi lại mã";
+        } else {
+            btn.textContent = `Gửi lại mã (${left}s)`;
+        }
+    }, 1000);
+}
+
+async function sendEmailCode() {
+    const email = $("emailInput").value.trim();
+    if (!email) { setAccMsg("Hãy nhập email!"); return; }
+    setAccMsg("Đang gửi mã...");
+    $("emailSendBtn").disabled = true;
+    try {
+        const data = await api("/api/auth/email/request", { method: "POST", body: JSON.stringify({ email }) });
+        $("emailCodeRow").classList.remove("hidden");
+        $("emailCodeInput").focus();
+        setAccMsg(data.dev_code ? `Chế độ thử nghiệm - mã của bạn: ${data.dev_code}` : `Đã gửi mã tới ${email}. Mã có hiệu lực ${Math.round(data.expires_in / 60)} phút.`);
+        startEmailCooldown(data.cooldown || 60);
+    } catch (e) {
+        setAccMsg(e.message);
+        $("emailSendBtn").disabled = false;
+    }
+}
+
+async function verifyEmailCode() {
+    const email = $("emailInput").value.trim();
+    const code = $("emailCodeInput").value.trim();
+    if (!/^\d{6}$/.test(code)) { setAccMsg("Mã xác nhận gồm đúng 6 chữ số."); return; }
+    try {
+        const data = await api("/api/auth/email/verify", { method: "POST", body: JSON.stringify({ email, code }) });
+        sessionStorage.setItem("email", data.email);
+        clearInterval(emailTimer);
+        $("emailInput").value = "";
+        $("emailCodeInput").value = "";
+        await loadAccount();
+        setAccMsg(data.message);
+    } catch (e) { setAccMsg(e.message); }
+}
+
+async function unlinkEmail() {
+    if (!confirm("Gỡ email khỏi tài khoản? Bạn sẽ không nhận thông báo qua email nữa.")) return;
+    try {
+        const data = await api("/api/auth/email", { method: "DELETE" });
+        await loadAccount();
+        setAccMsg(data.message);
+    } catch (e) { setAccMsg(e.message); }
+}
+
+function fileToDataUrl(file, maxSide = 900, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Không đọc được ảnh!")); };
+        img.src = url;
+    });
+}
+
+async function loadVerification() {
+    try {
+        const v = await api("/api/helper/verification");
+        const labels = { NONE: "Bạn chưa gửi hồ sơ xác minh.", PENDING: "⏳ Hồ sơ đang chờ duyệt.", APPROVED: "✔ Hồ sơ đã được duyệt. Khách sẽ thấy bạn là thợ đã xác minh.", REJECTED: "❌ Hồ sơ chưa được duyệt" + (v.note ? ": " + v.note : "") + ". Bạn có thể gửi lại." };
+        $("verifyStatus").textContent = labels[v.status] || v.status;
+        $("verifyForm").classList.toggle("hidden", v.status === "PENDING" || v.status === "APPROVED");
+        if (v.vehicle_info && !$("vehicleInfo").value) $("vehicleInfo").value = v.vehicle_info;
+    } catch (e) { $("verifyStatus").textContent = e.message; }
+}
+
+async function submitVerification() {
+    const vehicleInfo = $("vehicleInfo").value.trim();
+    const vehicleFile = $("vehiclePhotoFile").files[0];
+    const certFile = $("certPhotoFile").files[0];
+    if (!vehicleInfo) { alert("Hãy nhập thông tin xe!"); return; }
+    if (!vehicleFile) { alert("Hãy chọn ảnh xe!"); return; }
+    const btn = $("verifySubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Đang gửi...";
+    try {
+        const body = {
+            vehicle_info: vehicleInfo,
+            vehicle_photo: await fileToDataUrl(vehicleFile),
+            cert_photo: certFile ? await fileToDataUrl(certFile) : ""
+        };
+        await api("/api/helper/verify-submit", { method: "POST", body: JSON.stringify(body) });
+        await loadVerification();
+    } catch (e) { alert(e.message); }
+    btn.disabled = false;
+    btn.textContent = "Gửi hồ sơ";
+}
+
+async function checkHealth() {
+    try {
+        const res = await fetch(API + "/api/health");
+        if (!res.ok) throw new Error();
+        $("onlineBadge").textContent = "Online";
+        $("sysStatus").textContent = "Đã kết nối Server thành công";
+        $("sysStatus").style.color = "#16a34a";
+    } catch (e) {
+        $("onlineBadge").textContent = "Offline";
+        $("sysStatus").textContent = "Không kết nối được Server";
+        $("sysStatus").style.color = "#dc2626";
+    }
+}
+
+window.onload = async () => {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+    loadSettings();
+    $("workToggle").checked = localStorage.getItem("work_status") === "ON";
+    updateHelperStatusUI();
+    $("accName").textContent = sessionStorage.getItem("name") || "Thành viên";
+    $("idLabel").textContent = `SĐT ${sessionStorage.getItem("phone") || ""} - ID: ${sessionStorage.getItem("user_id")}`;
+    checkHealth();
+    setInterval(checkHealth, 30000);
+    radarTimer = setInterval(() => { radarTick++; if (!wsConnected || radarTick % 5 === 0) backgroundRadarPoll(); }, 4000);
+    connectRealtime();
+    syncAvailability();
+    resubscribePushIfGranted();
+    const saved = sessionStorage.getItem("active_sos_id");
+    if (saved) await openChat(saved);
+};
+</script>
+</body>
+</html>
