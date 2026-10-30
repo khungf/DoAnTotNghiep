@@ -68,6 +68,11 @@ input:checked + .slider:before { transform: translateX(26px); }
 .s-pane { overflow-y: auto; }
 .review-box { border-top: 1px dashed #d1d5db; padding-top: 8px; margin-bottom: 8px; }
 .hidden { display: none !important; }
+.nav-panel { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+.nav-next { font-size: 15px; font-weight: bold; color: #1e3a8a; margin-bottom: 4px; }
+.nav-meta { font-size: 13px; color: #374151; margin-bottom: 8px; }
+.nav-actions { display: flex; gap: 8px; }
+.nav-actions a, .nav-actions button { flex: 1; text-align: center; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -145,6 +150,14 @@ input:checked + .slider:before { transform: translateX(26px); }
         <div class="card chat-card hidden" id="chatSection">
             <div id="mapContainer" class="hidden">
                 <div id="map" style="height: 160px; border-radius: 10px; margin-bottom: 10px;"></div>
+                <div id="navPanel" class="nav-panel hidden">
+                    <div class="nav-next" id="navNext">Đang tìm đường...</div>
+                    <div class="nav-meta" id="navMeta"></div>
+                    <div class="nav-actions">
+                        <a class="btn blue small" id="navGoogleBtn" href="#" target="_blank" rel="noopener">🧭 Mở Google Maps</a>
+                        <button class="btn grey small" id="navFitBtn" onclick="fitRoute()">🎯 Xem toàn tuyến</button>
+                    </div>
+                </div>
             </div>
             <div class="chat-head">
                 <h3 id="chatTitle">💬 Khung chat</h3>
@@ -237,6 +250,8 @@ let currentTab = "victim";
 let pollTimer = null, radarTimer = null, trackingInterval = null, trackingSosId = null, helperLocationSender = null;
 let activeSosId = null, currentIncomingSosId = null, currentSos = null, radarBusy = false;
 let mapInstance = null, markerInstance = null;
+let navTimer = null, navSosId = null, navBusy = false, navFitted = false;
+let navLine = null, navVictimMarker = null, navHelperMarker = null;
 
 if (!sessionStorage.getItem("user_id")) { window.location.replace("/static/login.html"); }
 const $ = id => document.getElementById(id);
@@ -370,6 +385,127 @@ function startTrackingHelperOnMap(sosId) {
     };
     tick();
     trackingInterval = setInterval(tick, 4000);
+}
+
+function ensureMap(lat, lon) {
+    if (!mapInstance) {
+        mapInstance = L.map('map').setView([lat, lon], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(mapInstance);
+        setTimeout(() => mapInstance && mapInstance.invalidateSize(), 200);
+    }
+    return mapInstance;
+}
+
+function fmtDist(m) {
+    return m >= 1000 ? (m / 1000).toFixed(1) + " km" : (Math.max(10, Math.round(m / 10) * 10)) + " m";
+}
+
+function stopNavigation() {
+    if (!navSosId) return;
+    if (navTimer) clearInterval(navTimer);
+    navTimer = null;
+    navSosId = null;
+    navBusy = false;
+    navFitted = false;
+    if (mapInstance) {
+        [navLine, navVictimMarker, navHelperMarker].forEach(layer => { if (layer) mapInstance.removeLayer(layer); });
+    }
+    navLine = navVictimMarker = navHelperMarker = null;
+    $("navPanel").classList.add("hidden");
+    $("map").classList.remove("hidden");
+    $("map").style.height = "160px";
+    $("mapContainer").classList.add("hidden");
+}
+
+function startHelperNavigation(sos) {
+    if (navSosId === sos.id) return;
+    stopNavigation();
+    navSosId = sos.id;
+    $("mapContainer").classList.remove("hidden");
+    $("navPanel").classList.remove("hidden");
+
+    const hasLocation = sos.latitude != null && sos.longitude != null;
+    $("map").classList.toggle("hidden", !hasLocation);
+    $("navFitBtn").classList.toggle("hidden", !hasLocation);
+    if (!hasLocation) {
+        $("navNext").textContent = "Khách không chia sẻ vị trí, hãy hỏi địa chỉ trong khung chat.";
+        $("navMeta").textContent = "";
+        $("navGoogleBtn").classList.add("hidden");
+        return;
+    }
+
+    $("navGoogleBtn").classList.remove("hidden");
+    $("navGoogleBtn").href = `https://www.google.com/maps/dir/?api=1&destination=${sos.latitude},${sos.longitude}&travelmode=driving`;
+    $("navNext").textContent = "Đang tìm đường...";
+    $("navMeta").textContent = "";
+    $("map").style.height = "220px";
+
+    const map = ensureMap(sos.latitude, sos.longitude);
+    navVictimMarker = L.marker([sos.latitude, sos.longitude]).addTo(map).bindPopup("Vị trí khách cần cứu hộ");
+    map.invalidateSize();
+    map.setView([sos.latitude, sos.longitude], 15);
+
+    navTick();
+    navTimer = setInterval(navTick, 10000);
+}
+
+async function navTick() {
+    if (navBusy || !navSosId) return;
+    navBusy = true;
+    const sosId = navSosId;
+    try {
+        const pos = await getPosition();
+        if (!pos) {
+            $("navNext").textContent = "Chưa lấy được vị trí GPS của bạn. Hãy bật định vị.";
+            return;
+        }
+        if (!helperLocationSender) {
+            api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude }) }).catch(() => {});
+        }
+        const route = await api(`/api/sos/${sosId}/route?lat=${pos.latitude}&lon=${pos.longitude}`);
+        if (sosId !== navSosId) return;
+        drawRoute(route, pos);
+    } catch (e) {
+        if (sosId === navSosId) $("navNext").textContent = e.message;
+    } finally {
+        navBusy = false;
+    }
+}
+
+function drawRoute(route, pos) {
+    const map = mapInstance;
+    if (!map) return;
+    const style = { color: "#2563eb", weight: 5, opacity: 0.85, dashArray: route.approximate ? "8 8" : null };
+    if (navLine) { navLine.setLatLngs(route.coordinates); navLine.setStyle(style); }
+    else navLine = L.polyline(route.coordinates, style).addTo(map);
+
+    const here = [pos.latitude, pos.longitude];
+    if (navHelperMarker) navHelperMarker.setLatLng(here);
+    else navHelperMarker = L.circleMarker(here, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map).bindPopup("Bạn đang ở đây");
+
+    if (!navFitted) {
+        map.invalidateSize();
+        map.fitBounds(navLine.getBounds(), { padding: [24, 24] });
+        navFitted = true;
+    }
+
+    const meta = `🚗 Còn ${route.distance_km} km · khoảng ${route.duration_min} phút`;
+    $("navMeta").textContent = route.approximate ? meta + " (ước tính theo đường chim bay)" : meta;
+
+    if (route.distance_km < 0.05) {
+        $("navNext").textContent = "📍 Bạn đã tới nơi!";
+    } else if (route.steps.length >= 2) {
+        $("navNext").textContent = `${route.steps[1].instruction} sau ${fmtDist(route.steps[0].distance_m)}`;
+    } else {
+        $("navNext").textContent = "Đi theo đường màu xanh trên bản đồ.";
+    }
+}
+
+function fitRoute() {
+    if (mapInstance && navLine) {
+        mapInstance.invalidateSize();
+        mapInstance.fitBounds(navLine.getBounds(), { padding: [24, 24] });
+    }
 }
 
 async function loadNearbyServices() {
@@ -575,6 +711,7 @@ async function refreshChat() {
         }
 
         if (isOwner && sos.helper_id && !finished) startTrackingHelperOnMap(sos.id); else stopTracking();
+        if (isHelper && isCorrectTab && !finished) startHelperNavigation(sos); else stopNavigation();
 
         const messages = await api(`/api/sos/${sos.id}/messages`);
         const box = $("chatContainer");
@@ -623,6 +760,7 @@ function clearActive() {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = null;
     stopTracking();
+    stopNavigation();
     if (mapInstance) { mapInstance.remove(); mapInstance = null; markerInstance = null; }
     $("mapContainer").classList.add("hidden");
     $("approvalSection").innerHTML = "";

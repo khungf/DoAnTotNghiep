@@ -22,6 +22,20 @@ NEARBY_TTL_SECONDS = 300
 NEARBY_CACHE = {}
 MAX_PHOTO_CHARS = 1_500_000
 
+OSRM_URL = os.getenv("OSRM_URL", "https://router.project-osrm.org")
+ROUTE_TTL_SECONDS = 10
+ROUTE_CACHE = {}
+AVG_SPEED_KMH = 30
+CLOSED_STATUSES = ("COMPLETED", "EXPIRED", "CANCELLED")
+TURN_VI = {
+    "left": "trái",
+    "right": "phải",
+    "slight left": "chếch trái",
+    "slight right": "chếch phải",
+    "sharp left": "gắt sang trái",
+    "sharp right": "gắt sang phải",
+}
+
 class LocationUpdate(BaseModel):
     latitude: float
     longitude: float
@@ -107,6 +121,97 @@ def get_helper_location(sos_id: int, current: models.User = Depends(auth.get_cur
     if not helper:
         raise HTTPException(status_code=404, detail="Không tìm thấy thợ.")
     return {"latitude": helper.current_lat, "longitude": helper.current_lon}
+
+def describe_step(step: dict):
+    maneuver = step.get("maneuver", {})
+    kind = maneuver.get("type", "")
+    modifier = maneuver.get("modifier", "")
+    name = step.get("name") or ""
+    onto = f" vào {name}" if name else ""
+    if kind == "depart":
+        return "Xuất phát" + (f" trên {name}" if name else "")
+    if kind == "arrive":
+        return "Bạn đã tới điểm của khách"
+    if kind in ("roundabout", "rotary", "roundabout turn"):
+        exit_no = maneuver.get("exit")
+        return f"Vào vòng xuyến, ra lối thứ {exit_no}{onto}" if exit_no else f"Đi qua vòng xuyến{onto}"
+    if modifier == "uturn":
+        return "Quay đầu xe"
+    if modifier in TURN_VI:
+        return f"Rẽ {TURN_VI[modifier]}{onto}"
+    return "Đi thẳng" + (f" trên {name}" if name else "")
+
+def fetch_route(from_lat: float, from_lon: float, to_lat: float, to_lon: float):
+    url = (
+        f"{OSRM_URL}/route/v1/driving/{from_lon},{from_lat};{to_lon},{to_lat}"
+        "?overview=full&geometries=geojson&steps=true"
+    )
+    request = urllib.request.Request(url, headers={"User-Agent": "P2P-SOS/2.3"})
+    with urllib.request.urlopen(request, timeout=15) as res:
+        data = json.loads(res.read().decode())
+    if data.get("code") != "Ok" or not data.get("routes"):
+        raise ValueError("OSRM không tìm được đường đi")
+    route = data["routes"][0]
+
+    steps = []
+    for leg in route.get("legs", []):
+        for step in leg.get("steps", []):
+            lon, lat = step["maneuver"]["location"]
+            steps.append({
+                "instruction": describe_step(step),
+                "distance_m": round(step.get("distance", 0)),
+                "lat": lat,
+                "lon": lon,
+            })
+    return {
+        "distance_km": round(route["distance"] / 1000, 2),
+        "duration_min": max(1, round(route["duration"] / 60)),
+        "coordinates": [[c[1], c[0]] for c in route["geometry"]["coordinates"]],
+        "steps": steps,
+        "approximate": False,
+    }
+
+def straight_line_route(from_lat: float, from_lon: float, to_lat: float, to_lon: float):
+    km = calculate_distance(from_lat, from_lon, to_lat, to_lon)
+    return {
+        "distance_km": round(km, 2),
+        "duration_min": max(1, round(km / AVG_SPEED_KMH * 60)),
+        "coordinates": [[from_lat, from_lon], [to_lat, to_lon]],
+        "steps": [],
+        "approximate": True,
+    }
+
+@router.get("/sos/{sos_id}/route")
+def get_route_to_victim(sos_id: int, lat: Optional[float] = None, lon: Optional[float] = None, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    sos = get_sos_or_404(db, sos_id)
+    if sos.helper_id != current.id:
+        raise HTTPException(status_code=403, detail="Chỉ thợ đã nhận đơn mới xem được chỉ đường!")
+    if sos.status in CLOSED_STATUSES:
+        raise HTTPException(status_code=400, detail="Đơn đã kết thúc, không còn chỉ đường!")
+    if sos.latitude is None or sos.longitude is None:
+        raise HTTPException(status_code=400, detail="Khách không chia sẻ vị trí nên chưa thể chỉ đường!")
+
+    if lat is None or lon is None:
+        lat, lon = current.current_lat, current.current_lon
+    if lat is None or lon is None:
+        raise HTTPException(status_code=400, detail="Chưa có vị trí của bạn, hãy bật GPS!")
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise HTTPException(status_code=400, detail="Tọa độ không hợp lệ!")
+
+    key = (sos_id, round(lat, 4), round(lon, 4))
+    cached = ROUTE_CACHE.get(key)
+    if cached and time.time() - cached[0] < ROUTE_TTL_SECONDS:
+        return cached[1]
+
+    try:
+        result = fetch_route(lat, lon, sos.latitude, sos.longitude)
+        ROUTE_CACHE[key] = (time.time(), result)
+        if len(ROUTE_CACHE) > 500:
+            ROUTE_CACHE.clear()
+    except (OSError, ValueError, KeyError, IndexError):
+        result = straight_line_route(lat, lon, sos.latitude, sos.longitude)
+
+    return {**result, "destination": {"lat": sos.latitude, "lon": sos.longitude}}
 
 @router.get("/nearby-services")
 def get_nearby_services(lat: float, lon: float, radius: int = 3000, current: models.User = Depends(auth.get_current_user)):
