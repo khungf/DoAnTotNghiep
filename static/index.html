@@ -108,6 +108,15 @@ input:checked + .slider:before { transform: translateX(26px); }
     <div class="content">
         <div class="notice hidden" id="noticeBox"></div>
 
+        <!-- SỐ ĐIỆN THOẠI KHẨN CẤP -->
+        <div class="card" style="background: #fef2f2; border-color: #fca5a5; text-align: center; margin-bottom: 14px;">
+            <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 14px;">🚨 SỐ ĐIỆN THOẠI KHẨN CẤP</div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <a href="tel:113" class="btn red" style="padding: 8px; font-size: 13px;">📞 113 (Công an)</a>
+                <a href="tel:115" class="btn orange" style="padding: 8px; font-size: 13px; background: #0284c7;">🚑 115 (Cấp cứu)</a>
+            </div>
+        </div>
+
         <div class="card">
             <div class="row" style="justify-content: space-between;">
                 <span class="muted">TÀI KHOẢN ĐANG DÙNG</span>
@@ -115,17 +124,17 @@ input:checked + .slider:before { transform: translateX(26px); }
             </div>
             <div style="margin-top: 8px; font-size: 16px;"><b id="accName"></b></div>
             <div class="muted" id="idLabel" style="margin-top: 2px;"></div>
-<div id="emailBox" style="margin-top: 10px;">
-    <div class="muted" id="emailStatus"></div>
-    <div id="emailForm" class="hidden" style="margin-top: 8px;">
-        <input type="email" id="emailInput" placeholder="Email nhận thông báo">
-        <input type="text" id="emailCodeInput" class="hidden" inputmode="numeric" maxlength="6" placeholder="Mã 6 số gửi về email">
-        <button class="btn blue small" id="emailActionBtn" onclick="emailAction()">Gửi mã xác nhận</button>
-        <button class="link" style="margin-left: 10px;" onclick="closeEmailForm()">Hủy</button>
-    </div>
-    <button class="link" id="emailToggleBtn" style="margin-top: 6px;" onclick="openEmailForm()">📧 Liên kết email nhận thông báo</button>
-    <button class="link-danger hidden" id="emailUnlinkBtn" style="margin-left: 12px;" onclick="unlinkEmail()">Gỡ email</button>
-</div>
+            <div id="emailBox" style="margin-top: 10px;">
+                <div class="muted" id="emailStatus"></div>
+                <div id="emailForm" class="hidden" style="margin-top: 8px;">
+                    <input type="email" id="emailInput" placeholder="Email nhận thông báo">
+                    <input type="text" id="emailCodeInput" class="hidden" inputmode="numeric" maxlength="6" placeholder="Mã 6 số gửi về email">
+                    <button class="btn blue small" id="emailActionBtn" onclick="emailAction()">Gửi mã xác nhận</button>
+                    <button class="link" style="margin-left: 10px;" onclick="closeEmailForm()">Hủy</button>
+                </div>
+                <button class="link" id="emailToggleBtn" style="margin-top: 6px;" onclick="openEmailForm()">📧 Liên kết email nhận thông báo</button>
+                <button class="link-danger hidden" id="emailUnlinkBtn" style="margin-left: 12px;" onclick="unlinkEmail()">Gỡ email</button>
+            </div>
         </div>
 
         <div class="card wait hidden" id="waitCard"></div>
@@ -141,7 +150,6 @@ input:checked + .slider:before { transform: translateX(26px); }
 
         <!-- GIAO DIỆN CHẾ ĐỘ THỢ CỨU HỘ -->
         <div id="helperPanel" class="hidden">
-            <!-- NÚT GẠT CÔNG TẮC HOẠT ĐỘNG -->
             <div class="switch-container">
                 <div>
                     <div style="font-weight: bold; font-size: 15px;" id="statusLabelText">Trạng thái: Đang ngưng hoạt động</div>
@@ -165,9 +173,9 @@ input:checked + .slider:before { transform: translateX(26px); }
             <div class="modal-content">
                 <div class="modal-title">⚙️ Cài Đặt & Lịch Sử</div>
                 
-                <!-- Thanh chuyển đổi tab trong popup -->
                 <div class="settings-tabs">
                     <button class="s-tab active" onclick="switchSettingsTab('config')">Cài Đặt</button>
+                    <button class="s-tab" onclick="switchSettingsTab('verification')">Xác Minh Thợ</button>
                     <button class="s-tab" onclick="switchSettingsTab('rescueHistory')">Lịch Sử Cứu Hộ</button>
                     <button class="s-tab" onclick="switchSettingsTab('issueHistory')">Lịch Sử Sự Cố</button>
                 </div>
@@ -192,12 +200,21 @@ input:checked + .slider:before { transform: translateX(26px); }
                     </div>
                 </div>
 
-                <!-- Tab 2: Lịch sử cứu hộ (Vai trò Thợ) -->
+                <!-- Tab 2: Xác minh thợ -->
+                <div class="s-pane" id="paneVerification">
+                    <div style="font-size: 13px; margin-bottom: 10px; color: #374151;">Cung cấp thông tin phương tiện và giấy tờ để nhận huy hiệu <b>Thợ Uy Tín 🛡️</b></div>
+                    <input type="text" id="verVehicle" placeholder="Loại xe & Biển số (VD: Honda Winner 59-X1 123.45)">
+                    <input type="text" id="verVehiclePhoto" placeholder="Link ảnh phương tiện (URL)">
+                    <input type="text" id="verCertPhoto" placeholder="Link ảnh bằng lái / Giấy tờ nghề (URL)">
+                    <button class="btn blue" onclick="submitVerification()">Gửi Hồ Sơ Xác Minh</button>
+                </div>
+
+                <!-- Tab 3: Lịch sử cứu hộ -->
                 <div class="s-pane" id="paneRescueHistory">
                     <div id="rescueHistoryList"><div class="empty">Đang tải lịch sử cứu hộ...</div></div>
                 </div>
 
-                <!-- Tab 3: Lịch sử sự cố (Vai trò Khách) -->
+                <!-- Tab 4: Lịch sử sự cố -->
                 <div class="s-pane" id="paneIssueHistory">
                     <div id="issueHistoryList"><div class="empty">Đang tải lịch sử sự cố...</div></div>
                 </div>
@@ -215,6 +232,23 @@ input:checked + .slider:before { transform: translateX(26px); }
                     <button class="btn grey" onclick="ignoreOrder()">Bỏ qua</button>
                     <button class="btn green" onclick="acceptDispatchedOrder()">Nhận Cuốc ✅</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- POPUP ĐÁNH GIÁ SAO -->
+        <div class="modal-overlay hidden" id="reviewModal">
+            <div class="modal-content" style="text-align: center;">
+                <div class="modal-title" style="color: #16a34a;">⭐ Đánh Giá Dịch Vụ Cứu Hộ</div>
+                <div style="font-size: 14px; color: #374151; margin-bottom: 10px;">Hãy cho biết trải nghiệm của bạn với đối phương:</div>
+                <select id="reviewRating" style="margin-bottom: 10px;">
+                    <option value="5">⭐⭐⭐⭐⭐ (5 Sao - Xuất sắc)</option>
+                    <option value="4">⭐⭐⭐⭐ (4 Sao - Tốt)</option>
+                    <option value="3">⭐⭐⭐ (3 Sao - Bình thường)</option>
+                    <option value="2">⭐⭐ (2 Sao - Kém)</option>
+                    <option value="1">⭐ (1 Sao - Rất tệ)</option>
+                </select>
+                <input type="text" id="reviewComment" placeholder="Nhận xét thêm (không bắt buộc)...">
+                <button class="btn green" onclick="submitReview()" style="margin-top: 10px;">Gửi Đánh Giá</button>
             </div>
         </div>
 
@@ -236,6 +270,12 @@ input:checked + .slider:before { transform: translateX(26px); }
                 <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') sendChat()">
                 <button class="btn blue small" onclick="sendChat()">Gửi</button>
             </div>
+            
+            <!-- Nút Hủy đơn & Báo cáo an toàn trong khung chat -->
+            <div style="margin-top: 10px; display: flex; gap: 8px;" id="chatExtraActions">
+                <button class="btn grey small" onclick="openCancelModal()">🚫 Hủy đơn</button>
+                <button class="btn grey small" onclick="openReportModal()" style="background: #b91c1c;">⚠️ Báo cáo / An toàn</button>
+            </div>
         </div>
     </div>
 
@@ -244,7 +284,7 @@ input:checked + .slider:before { transform: translateX(26px); }
 
 <script>
 const API = window.location.origin;
-const STATUS_TEXT = { PENDING: "Chờ thợ", WAITING_APPROVAL: "Chờ duyệt giá", CHATTING: "Thương lượng", NEGOTIATING: "Đang cứu hộ", COMPLETED: "Hoàn thành" };
+const STATUS_TEXT = { PENDING: "Chờ thợ", WAITING_APPROVAL: "Chờ duyệt giá", CHATTING: "Thương lượng", NEGOTIATING: "Đang cứu hộ", COMPLETED: "Hoàn thành", EXPIRED: "Hết hạn", CANCELLED: "Đã hủy" };
 const CHAT_STATUSES = ["WAITING_APPROVAL", "CHATTING", "NEGOTIATING", "COMPLETED"];
 const RESTORE_STATUSES = ["WAITING_APPROVAL", "CHATTING", "NEGOTIATING"];
 let currentTab = "victim";
@@ -310,6 +350,9 @@ function switchSettingsTab(tabName) {
     if (tabName === 'config') {
         event.currentTarget.classList.add("active");
         $("paneConfig").classList.add("active");
+    } else if (tabName === 'verification') {
+        event.currentTarget.classList.add("active");
+        $("paneVerification").classList.add("active");
     } else if (tabName === 'rescueHistory') {
         event.currentTarget.classList.add("active");
         $("paneRescueHistory").classList.add("active");
@@ -718,7 +761,10 @@ function approvalHtml(sos, isOwner, isHelper) {
             <div class="approval-box done">
                 ${infoBox}
                 🏁 Đơn #${sos.id} đã hoàn thành.
-                <div style="margin-top: 8px;"><button class="btn grey small" id="btnCloseChat" onclick="clearActive()">Đóng khung chat</button></div>
+                <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
+                    <button class="btn green small" onclick="openReviewModal(${sos.id})">⭐ Đánh giá</button>
+                    <button class="btn grey small" id="btnCloseChat" onclick="clearActive()">Đóng khung chat</button>
+                </div>
             </div>`;
     }
     return "";
@@ -903,6 +949,75 @@ async function completeOrderQuick(sosId) {
         await api(`/api/sos/${sosId}/complete`, { method: "PUT" });
         alert("Đơn #" + sosId + " đã hoàn thành!");
         await refreshChat();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+async function submitVerification() {
+    const vehicle_info = $("verVehicle").value.trim();
+    const vehicle_photo = $("verVehiclePhoto").value.trim();
+    const cert_photo = $("verCertPhoto").value.trim();
+    if (!vehicle_info) { alert("Hãy nhập thông tin phương tiện!"); return; }
+    try {
+        const res = await api("/api/helper/verify-submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ vehicle_info, vehicle_photo, cert_photo })
+        });
+        alert(res.message);
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+async function openCancelModal() {
+    const reason = prompt("Nhập lý do hủy đơn cứu hộ:");
+    if (!reason) return;
+    try {
+        await api(`/api/sos/${activeSosId}/cancel`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason })
+        });
+        alert("Đã hủy đơn thành công.");
+        clearActive();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+async function openReportModal() {
+    const reason = prompt("Nhập nội dung báo cáo sự cố hoặc người dùng vi phạm:");
+    if (!reason) return;
+    try {
+        const res = await api(`/api/sos/${activeSosId}/report`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason })
+        });
+        alert(res.message);
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+function openReviewModal(sosId) {
+    $("reviewModal").classList.remove("hidden");
+}
+
+async function submitReview() {
+    const rating = parseInt($("reviewRating").value);
+    const comment = $("reviewComment").value.trim();
+    if (!activeSosId) return;
+    try {
+        const res = await api(`/api/sos/${activeSosId}/review`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rating, comment })
+        });
+        alert(res.message);
+        $("reviewModal").classList.add("hidden");
     } catch (e) {
         alert(e.message);
     }

@@ -7,6 +7,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from math import radians, sin, cos, sqrt, atan2
 from pydantic import BaseModel
+from datetime import datetime, timedelta
 
 from . import models, database, auth
 
@@ -14,7 +15,7 @@ database.init_db()
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="P2P Emergency Rescue Platform", version="1.7")
+app = FastAPI(title="P2P Emergency Rescue Platform", version="1.8")
 
 app.add_middleware(
     CORSMiddleware,
@@ -68,8 +69,35 @@ def require_participant(sos, user_id: int):
     if user_id != sos.user_id and user_id != sos.helper_id:
         raise HTTPException(status_code=403, detail="Bạn không thuộc đơn cứu hộ này!")
 
+def check_expired_sos(db: Session):
+    expiration_threshold = datetime.utcnow() - timedelta(minutes=15)
+    pending_sos = db.query(models.SOSRequest).filter(
+        models.SOSRequest.status == "PENDING",
+        models.SOSRequest.created_at < expiration_threshold
+    ).all()
+    for sos in pending_sos:
+        sos.status = "EXPIRED"
+    if pending_sos:
+        db.commit()
+
 class MessageCreate(BaseModel):
     content: str
+
+class CancelRequest(BaseModel):
+    reason: str
+
+class ReviewCreate(BaseModel):
+    rating: int
+    comment: str = ""
+
+class ReportCreate(BaseModel):
+    reported_id: int = None
+    reason: str
+
+class VerificationSubmit(BaseModel):
+    vehicle_info: str
+    vehicle_photo: str = ""
+    cert_photo: str = ""
 
 @app.get("/api/health")
 def health_check():
@@ -123,6 +151,7 @@ def ignore_sos(sos_id: int, current: models.User = Depends(auth.get_current_user
 
 @app.get("/api/helper/incoming-order")
 def get_incoming_order(lat: float = None, lon: float = None, max_distance: float = 10.0, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    check_expired_sos(db)
     helper_id = current.id
     pending_sos = db.query(models.SOSRequest).filter(models.SOSRequest.status == "PENDING").all()
     if not pending_sos:
@@ -315,3 +344,78 @@ def complete_sos(sos_id: int, current: models.User = Depends(auth.get_current_us
         "sos_id": sos.id,
         "status": sos.status
     }
+
+@app.put("/api/sos/{sos_id}/cancel")
+def cancel_sos(sos_id: int, body: CancelRequest, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    sos = get_sos_or_404(db, sos_id)
+    require_participant(sos, current.id)
+    if sos.status in ("COMPLETED", "EXPIRED", "CANCELLED"):
+        raise HTTPException(status_code=400, detail="Đơn này không thể hủy nữa!")
+    
+    sos.status = "CANCELLED"
+    sos.cancel_reason = body.reason.strip()
+    sos.cancelled_by = current.id
+    
+    role_name = "Khách hàng" if current.id == sos.user_id else "Thợ cứu hộ"
+    db.add(models.Message(
+        sos_id=sos_id, 
+        sender_id=current.id, 
+        content=f"🚫 {role_name} đã hủy đơn cứu hộ. Lý do: {sos.cancel_reason}"
+    ))
+    db.commit()
+    return {"message": "Đã hủy đơn cứu hộ thành công.", "status": sos.status}
+
+@app.post("/api/sos/{sos_id}/review")
+def create_review(sos_id: int, body: ReviewCreate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if not (1 <= body.rating <= 5):
+        raise HTTPException(status_code=400, detail="Số sao đánh giá phải từ 1 đến 5!")
+    sos = get_sos_or_404(db, sos_id)
+    require_participant(sos, current.id)
+    if sos.status != "COMPLETED":
+        raise HTTPException(status_code=400, detail="Chỉ có thể đánh giá khi đơn đã hoàn thành!")
+    
+    target_id = sos.helper_id if current.id == sos.user_id else sos.user_id
+    if not target_id:
+        raise HTTPException(status_code=400, detail="Không tìm thấy đối phương để đánh giá!")
+
+    existing = db.query(models.Review).filter(
+        models.Review.sos_id == sos_id,
+        models.Review.reviewer_id == current.id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bạn đã đánh giá đơn này rồi!")
+
+    review = models.Review(
+        sos_id=sos_id,
+        reviewer_id=current.id,
+        target_id=target_id,
+        rating=body.rating,
+        comment=body.comment.strip()
+    )
+    db.add(review)
+    db.commit()
+    return {"message": "Đã gửi đánh giá thành công! Cảm ơn bạn."}
+
+@app.post("/api/sos/{sos_id}/report")
+def report_incident(sos_id: int, body: ReportCreate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    sos = get_sos_or_404(db, sos_id)
+    require_participant(sos, current.id)
+    
+    report = models.UserReport(
+        reporter_id=current.id,
+        reported_id=body.reported_id,
+        sos_id=sos_id,
+        reason=body.reason.strip()
+    )
+    db.add(report)
+    db.commit()
+    return {"message": "Đã ghi nhận báo cáo an toàn. Đội ngũ hỗ trợ sẽ kiểm tra ngay lập tức."}
+
+@app.post("/api/helper/verify-submit")
+def submit_verification(body: VerificationSubmit, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    current.vehicle_info = body.vehicle_info.strip()
+    current.vehicle_photo = body.vehicle_photo.strip()
+    current.cert_photo = body.cert_photo.strip()
+    current.verification_status = "PENDING"
+    db.commit()
+    return {"message": "Đã gửi hồ sơ xác minh, hệ thống sẽ duyệt trong thời gian sớm nhất.", "status": current.verification_status}

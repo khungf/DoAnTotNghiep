@@ -10,6 +10,12 @@ class User(Base):
     name = Column(String)
     role = Column(String, default="unified")
     is_verified = Column(Boolean, default=False)
+    
+    # Thông tin xác minh thợ
+    vehicle_info = Column(String, nullable=True)
+    vehicle_photo = Column(String, nullable=True)
+    cert_photo = Column(String, nullable=True)
+    verification_status = Column(String, default="NONE") # NONE, PENDING, APPROVED, REJECTED
 
 class OtpCode(Base):
     __tablename__ = "otp_codes"
@@ -28,7 +34,7 @@ class SOSRequest(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     issue_type = Column(String, nullable=False)
     proposed_price = Column(Float, nullable=False)
-    status = Column(String, default="PENDING")
+    status = Column(String, default="PENDING") # PENDING, WAITING_APPROVAL, CHATTING, NEGOTIATING, COMPLETED, EXPIRED, CANCELLED
     helper_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     agreed_price = Column(Float, nullable=True)
 
@@ -36,6 +42,10 @@ class SOSRequest(Base):
     longitude = Column(Float, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Thông tin hủy đơn
+    cancel_reason = Column(String, nullable=True)
+    cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
 class Message(Base):
     __tablename__ = "messages"
@@ -45,3 +55,22 @@ class Message(Base):
     sender_id = Column(Integer, ForeignKey("users.id"))
     content = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class Review(Base):
+    __tablename__ = "reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    sos_id = Column(Integer, ForeignKey("sos_requests.id"))
+    reviewer_id = Column(Integer, ForeignKey("users.id"))
+    target_id = Column(Integer, ForeignKey("users.id"))
+    rating = Column(Integer, nullable=False) # 1 - 5 sao
+    comment = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class UserReport(Base):
+    __tablename__ = "user_reports"
+    id = Column(Integer, primary_key=True, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"))
+    reported_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    sos_id = Column(Integer, ForeignKey("sos_requests.id"), nullable=True)
+    reason = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
