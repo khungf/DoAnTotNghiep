@@ -37,6 +37,7 @@ def require_participant(sos, user_id: int):
     if user_id != sos.user_id and user_id != sos.helper_id:
         raise HTTPException(status_code=403, detail="Bạn không thuộc đơn cứu hộ này!")
 
+# Tính năng 1: Tự động chuyển đơn PENDING thành EXPIRED sau 15 phút
 def check_expired_sos(db: Session):
     expiration_threshold = datetime.utcnow() - timedelta(minutes=15)
     pending_sos = db.query(models.SOSRequest).filter(
@@ -99,7 +100,7 @@ def ignore_sos(sos_id: int, current: models.User = Depends(auth.get_current_user
 
 @router.get("/helper/incoming-order")
 def get_incoming_order(lat: float = None, lon: float = None, max_distance: float = 10.0, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    check_expired_sos(db)
+    check_expired_sos(db) # Kiểm tra và hết hạn đơn cũ trước khi quét
     helper_id = current.id
     pending_sos = db.query(models.SOSRequest).filter(models.SOSRequest.status == "PENDING").all()
     if not pending_sos:
@@ -174,95 +175,43 @@ def negotiate_sos(sos_id: int, final_price: float, current: models.User = Depend
     if sos.user_id == helper_id:
         raise HTTPException(status_code=400, detail="Bạn không thể nhận đơn SOS của chính mình!")
 
-    if sos.status in ("PENDING", "DISPATCHED"):
-        content = f"💰 Thợ đề nghị mức giá {final_price:,.0f} VNĐ. Đang chờ khách xác nhận."
-    elif sos.status in ("WAITING_APPROVAL", "CHATTING") and sos.helper_id == helper_id:
-        content = f"💰 Thợ đề nghị lại mức giá {final_price:,.0f} VNĐ. Đang chờ khách xác nhận."
-    else:
-        raise HTTPException(status_code=400, detail="Đơn này đã có thợ khác nhận hoặc không thể đổi giá nữa!")
-
     sos.helper_id = helper_id
     sos.agreed_price = final_price
     sos.status = "WAITING_APPROVAL"
 
-    db.add(models.Message(sos_id=sos_id, sender_id=helper_id, content=content))
+    db.add(models.Message(sos_id=sos_id, sender_id=helper_id, content=f"💰 Thợ đề nghị mức giá {final_price:,.0f} VNĐ. Đang chờ khách xác nhận."))
     db.commit()
     db.refresh(sos)
-    return {
-        "message": "Đã gửi đề nghị giá tới người cần cứu. Đang chờ khách xác nhận!",
-        "sos_id": sos.id,
-        "agreed_price": sos.agreed_price,
-        "status": sos.status
-    }
+    return {"message": "Đã gửi đề nghị giá!", "status": sos.status}
 
 @router.put("/sos/{sos_id}/respond")
 def respond_sos(sos_id: int, action: str, expected_price: float = None, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    user_id = current.id
     sos = get_sos_or_404(db, sos_id)
-    if sos.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Chỉ người cần cứu mới được đồng ý hoặc từ chối giá!")
-    if sos.status != "WAITING_APPROVAL":
-        raise HTTPException(status_code=400, detail="Đơn này hiện không có đề nghị giá nào chờ duyệt!")
-
+    if sos.user_id != current.id:
+        raise HTTPException(status_code=403, detail="Chỉ người cần cứu mới được phản hồi giá!")
+    
     if action == "ACCEPT":
-        if expected_price is not None and abs(expected_price - sos.agreed_price) > 0.5:
-            raise HTTPException(status_code=409, detail="Thợ vừa đổi mức giá, hãy xem lại đề nghị mới!")
         sos.status = "NEGOTIATING"
-        msg_content = f"✅ Khách hàng đã ĐỒNG Ý mức giá {sos.agreed_price:,.0f} VNĐ. Tiến hành cứu hộ!"
-    elif action == "REJECT":
-        rejected_price = sos.agreed_price
+        msg = f"✅ Khách đã ĐỒNG Ý mức giá {sos.agreed_price:,.0f} VNĐ."
+    else:
         sos.status = "CHATTING"
         sos.agreed_price = None
-        msg_content = f"❌ Khách hàng chưa đồng ý mức giá {rejected_price:,.0f} VNĐ. Hai bên có thể nhắn tin hoặc gọi điện để thỏa thuận lại."
-    else:
-        raise HTTPException(status_code=400, detail="Hành động không hợp lệ!")
+        msg = "❌ Khách chưa đồng ý giá, hai bên có thể thương lượng lại."
 
-    db.add(models.Message(sos_id=sos_id, sender_id=sos.user_id, content=msg_content))
+    db.add(models.Message(sos_id=sos_id, sender_id=sos.user_id, content=msg))
     db.commit()
-    db.refresh(sos)
-
-    return {
-        "message": "Đã cập nhật phản hồi của khách hàng!",
-        "status": sos.status
-    }
-
-@router.put("/sos/{sos_id}/release")
-def release_sos(sos_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    user_id = current.id
-    sos = get_sos_or_404(db, sos_id)
-    require_participant(sos, user_id)
-    if sos.status not in ("WAITING_APPROVAL", "CHATTING"):
-        raise HTTPException(status_code=400, detail="Chỉ có thể kết thúc thương lượng khi chưa chốt giá!")
-
-    db.query(models.Message).filter(models.Message.sos_id == sos_id).delete()
-    sos.helper_id = None
-    sos.agreed_price = None
-    sos.status = "PENDING"
-    db.commit()
-    db.refresh(sos)
-    return {
-        "message": "Đã kết thúc thương lượng, đơn quay lại danh sách chờ thợ.",
-        "status": sos.status
-    }
+    return {"message": "Đã cập nhật!", "status": sos.status}
 
 @router.put("/sos/{sos_id}/complete")
 def complete_sos(sos_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    user_id = current.id
     sos = get_sos_or_404(db, sos_id)
-    require_participant(sos, user_id)
-    if sos.status != "NEGOTIATING":
-        raise HTTPException(status_code=400, detail="Đơn chưa chốt giá hoặc đã hoàn thành!")
-
+    require_participant(sos, current.id)
     sos.status = "COMPLETED"
-    db.add(models.Message(sos_id=sos_id, sender_id=user_id, content="🏁 Đơn cứu hộ đã được xác nhận hoàn thành."))
+    db.add(models.Message(sos_id=sos_id, sender_id=current.id, content="🏁 Đơn cứu hộ đã được xác nhận hoàn thành."))
     db.commit()
-    db.refresh(sos)
-    return {
-        "message": "Đơn cứu hộ đã được hoàn thành!",
-        "sos_id": sos.id,
-        "status": sos.status
-    }
+    return {"message": "Hoàn thành đơn!", "status": sos.status}
 
+# Tính năng 3: Hủy đơn đúng cách (lưu lý do và người hủy)
 @router.put("/sos/{sos_id}/cancel")
 def cancel_sos(sos_id: int, body: CancelRequest, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
     sos = get_sos_or_404(db, sos_id)
