@@ -1,18 +1,25 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy import or_, func
-from sqlalchemy.orm import Session
 from math import radians, sin, cos, sqrt, atan2
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from urllib.parse import quote
 
-from .. import models, database, auth
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from pydantic import BaseModel
+from sqlalchemy import or_, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from .. import models, database, auth, realtime, push
+from ..database import SessionLocal
 from ..mailer import notify_in_background
 
 router = APIRouter(prefix="/api", tags=["sos"])
 
 CLOSED_STATUSES = ("COMPLETED", "EXPIRED", "CANCELLED")
+NEGOTIABLE_STATUSES = ("PENDING", "WAITING_APPROVAL", "CHATTING")
 REQUIRE_VERIFIED_HELPER = os.getenv("REQUIRE_VERIFIED_HELPER", "0") == "1"
+PUSH_MAX_RECIPIENTS = 30
+LOCATION_FRESH_HOURS = 3
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -47,16 +54,99 @@ def require_participant(sos, user_id: int):
     if user_id != sos.user_id and user_id != sos.helper_id:
         raise HTTPException(status_code=403, detail="Bạn không thuộc đơn cứu hộ này!")
 
+def move_status(db: Session, sos_id: int, from_statuses, values: dict, *extra_filters) -> bool:
+    """Chuyển trạng thái đơn bằng MỘT câu UPDATE có điều kiện (nguyên tử).
+    Nếu hai người thao tác cùng lúc, chỉ một người thành công, người còn lại nhận False."""
+    updated = db.query(models.SOSRequest).filter(
+        models.SOSRequest.id == sos_id,
+        models.SOSRequest.status.in_(from_statuses),
+        *extra_filters,
+    ).update(values, synchronize_session=False)
+    return updated == 1
+
 def check_expired_sos(db: Session):
-    expiration_threshold = datetime.utcnow() - timedelta(minutes=15)
-    pending_sos = db.query(models.SOSRequest).filter(
+    threshold = datetime.utcnow() - timedelta(minutes=15)
+    rows = db.query(models.SOSRequest.id, models.SOSRequest.user_id).filter(
         models.SOSRequest.status == "PENDING",
-        models.SOSRequest.created_at < expiration_threshold
+        models.SOSRequest.created_at < threshold,
     ).all()
-    for sos in pending_sos:
-        sos.status = "EXPIRED"
-    if pending_sos:
-        db.commit()
+    if not rows:
+        return
+    ids = [r[0] for r in rows]
+    db.query(models.SOSRequest).filter(
+        models.SOSRequest.id.in_(ids),
+        models.SOSRequest.status == "PENDING",
+    ).update({"status": "EXPIRED"}, synchronize_session=False)
+    db.commit()
+    for sos_id, user_id in rows:
+        realtime.manager.publish([user_id], {"type": "sos_update", "sos_id": sos_id})
+
+def build_qr_url(bank_code: str, account: str, holder: str, amount: float, sos_id: int) -> str:
+    return (
+        f"https://img.vietqr.io/image/{quote(bank_code)}-{quote(account)}-compact2.png"
+        f"?amount={int(amount)}&addInfo={quote(f'SOS {sos_id}')}&accountName={quote(holder or '')}"
+    )
+
+def payment_view(sos, viewer_id: int, helper):
+    status = sos.payment_status or "UNPAID"
+    view = {
+        "payment_method": sos.payment_method,
+        "payment_status": status,
+        "paid_at": (sos.paid_at.isoformat() + "Z") if sos.paid_at else None,
+        "helper_has_bank": bool(helper and helper.bank_code and helper.bank_account),
+        "payment_qr_url": None,
+        "bank_info": None,
+    }
+    can_show_bank = (
+        viewer_id == sos.user_id and sos.payment_method == "TRANSFER" and status != "PAID"
+        and sos.agreed_price and view["helper_has_bank"]
+    )
+    if can_show_bank:
+        view["payment_qr_url"] = build_qr_url(helper.bank_code, helper.bank_account, helper.bank_holder, sos.agreed_price, sos.id)
+        view["bank_info"] = {"bank_code": helper.bank_code, "account": helper.bank_account, "holder": helper.bank_holder}
+    return view
+
+def notify_nearby_helpers(sos_id: int):
+    """Gửi thông báo đẩy cho thợ đang sẵn sàng ở gần (kể cả khi họ đã đóng app)."""
+    if not push.push_enabled():
+        return
+    db = SessionLocal()
+    try:
+        sos = db.get(models.SOSRequest, sos_id)
+        if not sos or sos.status != "PENDING" or sos.latitude is None or sos.longitude is None:
+            return
+        fresh = datetime.utcnow() - timedelta(hours=LOCATION_FRESH_HOURS)
+        helpers = db.query(models.User).filter(
+            models.User.is_available == True,
+            models.User.id != sos.user_id,
+            models.User.current_lat.isnot(None),
+            models.User.current_lon.isnot(None),
+            models.User.location_updated_at >= fresh,
+            models.User.id.in_(select(models.PushSubscription.user_id)),
+        ).all()
+        ignored = {r[0] for r in db.query(models.IgnoredOrder.helper_id).filter(models.IgnoredOrder.sos_id == sos_id).all()}
+
+        candidates = []
+        for helper in helpers:
+            if helper.id in ignored:
+                continue
+            if REQUIRE_VERIFIED_HELPER and helper.verification_status != "APPROVED":
+                continue
+            dist = calculate_distance(helper.current_lat, helper.current_lon, sos.latitude, sos.longitude)
+            if dist <= (helper.max_distance or 10.0):
+                candidates.append((dist, helper.id))
+        candidates.sort()
+
+        for dist, helper_id in candidates[:PUSH_MAX_RECIPIENTS]:
+            push.send_push_to_user(
+                db, helper_id, "🚨 Có người cần cứu hộ gần bạn",
+                f"{sos.issue_type} · cách bạn {dist:.1f} km · {sos.proposed_price:,.0f} VNĐ",
+                tag=f"sos-{sos.id}",
+            )
+    except Exception as e:
+        print(f"[PUSH] Lỗi báo đơn tới thợ gần: {e}")
+    finally:
+        db.close()
 
 class CancelRequest(BaseModel):
     reason: str
@@ -82,12 +172,23 @@ def get_user_sos(user_id: int, current: models.User = Depends(auth.get_current_u
     ]
 
 @router.post("/sos")
-def create_sos(issue_type: str, proposed_price: float, latitude: float = None, longitude: float = None, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
-    issue_type = issue_type.strip()
+def create_sos(background: BackgroundTasks, issue_type: str, proposed_price: float, latitude: float = None, longitude: float = None, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    issue_type = issue_type.strip()[:200]
     if not issue_type:
         raise HTTPException(status_code=400, detail="Hãy mô tả sự cố!")
-    if proposed_price <= 0:
-        raise HTTPException(status_code=400, detail="Giá đề xuất phải lớn hơn 0!")
+    if proposed_price <= 0 or proposed_price > 100_000_000:
+        raise HTTPException(status_code=400, detail="Giá đề xuất phải lớn hơn 0 và không quá 100.000.000 VNĐ!")
+    if (latitude is None) != (longitude is None) or (latitude is not None and not (-90 <= latitude <= 90 and -180 <= longitude <= 180)):
+        raise HTTPException(status_code=400, detail="Tọa độ không hợp lệ!")
+
+    check_expired_sos(db)
+    open_sos = db.query(models.SOSRequest).filter(
+        models.SOSRequest.user_id == current.id,
+        models.SOSRequest.status.notin_(CLOSED_STATUSES),
+    ).first()
+    if open_sos:
+        raise HTTPException(status_code=400, detail=f"Bạn đang có đơn #{open_sos.id} chưa kết thúc, hãy hoàn thành hoặc hủy trước khi phát tín hiệu mới!")
+
     sos_request = models.SOSRequest(
         user_id=current.id,
         issue_type=issue_type,
@@ -99,6 +200,9 @@ def create_sos(issue_type: str, proposed_price: float, latitude: float = None, l
     db.add(sos_request)
     db.commit()
     db.refresh(sos_request)
+
+    realtime.manager.broadcast({"type": "new_sos"}, exclude={current.id})
+    background.add_task(notify_nearby_helpers, sos_request.id)
     return {"message": "Phát tín hiệu SOS thành công!", "sos_id": sos_request.id, "status": sos_request.status}
 
 @router.put("/sos/{sos_id}/ignore")
@@ -109,8 +213,11 @@ def ignore_sos(sos_id: int, current: models.User = Depends(auth.get_current_user
         models.IgnoredOrder.helper_id == current.id
     ).first()
     if not exists:
-        db.add(models.IgnoredOrder(sos_id=sos_id, helper_id=current.id))
-        db.commit()
+        try:
+            db.add(models.IgnoredOrder(sos_id=sos_id, helper_id=current.id))
+            db.commit()
+        except IntegrityError:
+            db.rollback()
     return {"message": "Đã ghi nhận bỏ qua đơn."}
 
 @router.get("/helper/incoming-order")
@@ -175,15 +282,17 @@ def get_sos(sos_id: int, current: models.User = Depends(auth.get_current_user), 
         "helper_name": helper_name if share_info else None, "helper_phone": helper_phone if share_info else None,
         "helper_verified": bool(helper and helper.verification_status == "APPROVED"),
         "helper_rating": helper_rating, "helper_review_count": helper_review_count,
-        "user_rating": user_rating, "user_review_count": user_review_count
+        "user_rating": user_rating, "user_review_count": user_review_count,
+        **payment_view(sos, viewer_id, helper),
     }
 
 @router.put("/sos/{sos_id}/negotiate")
 def negotiate_sos(sos_id: int, final_price: float, background: BackgroundTasks, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
     helper_id = current.id
+    check_expired_sos(db)
     sos = get_sos_or_404(db, sos_id)
-    if final_price <= 0:
-        raise HTTPException(status_code=400, detail="Giá đề nghị phải lớn hơn 0!")
+    if final_price <= 0 or final_price > 100_000_000:
+        raise HTTPException(status_code=400, detail="Giá đề nghị phải lớn hơn 0 và không quá 100.000.000 VNĐ!")
     if sos.user_id == helper_id:
         raise HTTPException(status_code=400, detail="Bạn không thể nhận đơn SOS của chính mình!")
     if sos.status in CLOSED_STATUSES or sos.status == "NEGOTIATING":
@@ -194,12 +303,20 @@ def negotiate_sos(sos_id: int, final_price: float, background: BackgroundTasks, 
     if REQUIRE_VERIFIED_HELPER and current.verification_status != "APPROVED":
         raise HTTPException(status_code=403, detail="Bạn cần được xác minh hồ sơ thợ trước khi nhận đơn!")
 
-    sos.helper_id = helper_id
-    sos.agreed_price = final_price
-    sos.status = "WAITING_APPROVAL"
+    # Chốt đơn nguyên tử: nếu hai thợ bấm cùng lúc, chỉ một người cập nhật được dòng này.
+    won = move_status(
+        db, sos_id, NEGOTIABLE_STATUSES,
+        {"helper_id": helper_id, "agreed_price": final_price, "status": "WAITING_APPROVAL"},
+        or_(models.SOSRequest.helper_id.is_(None), models.SOSRequest.helper_id == helper_id),
+    )
+    if not won:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Đơn đã có thợ khác nhận hoặc không thể nhận nữa!")
 
     db.add(models.Message(sos_id=sos_id, sender_id=helper_id, content=f"💰 Thợ đề nghị mức giá {final_price:,.0f} VNĐ. Đang chờ khách xác nhận."))
     db.commit()
+    db.refresh(sos)
+    realtime.sos_changed(sos)
     background.add_task(notify_in_background, sos.user_id, f"Đơn SOS #{sos.id}: thợ đề nghị giá", f"Thợ cứu hộ đề nghị mức giá {final_price:,.0f} VNĐ cho đơn #{sos.id}.")
     return {"message": "Đã gửi đề nghị giá!", "status": sos.status}
 
@@ -212,17 +329,26 @@ def respond_sos(sos_id: int, action: str, background: BackgroundTasks, expected_
         raise HTTPException(status_code=400, detail="Đơn không ở trạng thái chờ xác nhận giá!")
     if action not in ("ACCEPT", "REJECT"):
         raise HTTPException(status_code=400, detail="Hành động không hợp lệ!")
+    if expected_price is not None and sos.agreed_price is not None and abs(expected_price - sos.agreed_price) > 0.5:
+        raise HTTPException(status_code=409, detail="Thợ vừa đổi mức giá, hãy xem lại giá mới trước khi quyết định!")
 
+    seen_price = sos.agreed_price
     if action == "ACCEPT":
-        sos.status = "NEGOTIATING"
-        msg = f"✅ Khách đã ĐỒNG Ý mức giá {sos.agreed_price:,.0f} VNĐ."
+        values = {"status": "NEGOTIATING"}
+        msg = f"✅ Khách đã ĐỒNG Ý mức giá {seen_price:,.0f} VNĐ."
     else:
-        sos.status = "CHATTING"
-        sos.agreed_price = None
+        values = {"status": "CHATTING", "agreed_price": None}
         msg = "❌ Khách chưa đồng ý giá, thương lượng lại."
+
+    # Chỉ áp dụng nếu giá vẫn đúng là mức khách đã nhìn thấy.
+    if not move_status(db, sos_id, ("WAITING_APPROVAL",), values, models.SOSRequest.agreed_price == seen_price):
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Đơn vừa thay đổi, hãy xem lại trước khi quyết định!")
 
     db.add(models.Message(sos_id=sos_id, sender_id=sos.user_id, content=msg))
     db.commit()
+    db.refresh(sos)
+    realtime.sos_changed(sos)
     background.add_task(notify_in_background, sos.helper_id, f"Đơn SOS #{sos.id}: khách đã phản hồi giá", msg)
     return {"message": "Đã cập nhật!", "status": sos.status}
 
@@ -232,10 +358,14 @@ def complete_sos(sos_id: int, background: BackgroundTasks, current: models.User 
     require_participant(sos, current.id)
     if sos.status != "NEGOTIATING":
         raise HTTPException(status_code=400, detail="Chỉ hoàn thành được đơn đã thống nhất giá!")
-    sos.status = "COMPLETED"
+    if not move_status(db, sos_id, ("NEGOTIATING",), {"status": "COMPLETED"}):
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Đơn vừa thay đổi trạng thái, hãy tải lại!")
     db.add(models.Message(sos_id=sos_id, sender_id=current.id, content="🏁 Đơn cứu hộ đã được xác nhận hoàn thành."))
     db.commit()
-    background.add_task(notify_in_background, other_party(sos, current.id), f"Đơn SOS #{sos.id} đã hoàn thành", f"Đơn cứu hộ #{sos.id} đã được xác nhận hoàn thành. Hãy đánh giá đối phương trong ứng dụng.")
+    db.refresh(sos)
+    realtime.sos_changed(sos)
+    background.add_task(notify_in_background, other_party(sos, current.id), f"Đơn SOS #{sos.id} đã hoàn thành", f"Đơn cứu hộ #{sos.id} đã được xác nhận hoàn thành. Hãy thanh toán và đánh giá đối phương trong ứng dụng.")
     return {"message": "Hoàn thành đơn!", "status": sos.status}
 
 @router.put("/sos/{sos_id}/cancel")
@@ -245,12 +375,16 @@ def cancel_sos(sos_id: int, body: CancelRequest, background: BackgroundTasks, cu
     if sos.status in CLOSED_STATUSES:
         raise HTTPException(status_code=400, detail="Đơn này không thể hủy nữa!")
 
-    sos.status = "CANCELLED"
-    sos.cancel_reason = body.reason.strip()
-    sos.cancelled_by = current.id
+    reason = body.reason.strip()[:300]
+    open_statuses = ("PENDING", "WAITING_APPROVAL", "CHATTING", "NEGOTIATING")
+    if not move_status(db, sos_id, open_statuses, {"status": "CANCELLED", "cancel_reason": reason, "cancelled_by": current.id}):
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Đơn này không thể hủy nữa!")
 
     role_name = "Khách hàng" if current.id == sos.user_id else "Thợ cứu hộ"
-    db.add(models.Message(sos_id=sos_id, sender_id=current.id, content=f"🚫 {role_name} đã hủy đơn. Lý do: {sos.cancel_reason}"))
+    db.add(models.Message(sos_id=sos_id, sender_id=current.id, content=f"🚫 {role_name} đã hủy đơn. Lý do: {reason}"))
     db.commit()
-    background.add_task(notify_in_background, other_party(sos, current.id), f"Đơn SOS #{sos.id} đã bị hủy", f"{role_name} đã hủy đơn #{sos.id}. Lý do: {sos.cancel_reason}")
+    db.refresh(sos)
+    realtime.sos_changed(sos)
+    background.add_task(notify_in_background, other_party(sos, current.id), f"Đơn SOS #{sos.id} đã bị hủy", f"{role_name} đã hủy đơn #{sos.id}. Lý do: {reason}")
     return {"message": "Đã hủy đơn thành công.", "status": sos.status}

@@ -8,8 +8,9 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from . import models
@@ -20,6 +21,19 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
 DEV_MODE = os.getenv("DEV_MODE", "0") == "1"
+
+if not DEV_MODE and (SECRET_KEY == "dev-secret-change-me" or len(SECRET_KEY) < 32):
+    raise RuntimeError(
+        "Chưa đặt SECRET_KEY an toàn. Hãy đặt biến môi trường SECRET_KEY dài tối thiểu 32 ký tự "
+        "(tạo bằng: python -c \"import secrets; print(secrets.token_hex(32))\"), "
+        "hoặc bật DEV_MODE=1 khi chạy thử trên máy."
+    )
+
+TRUST_PROXY = os.getenv("TRUST_PROXY", "0") == "1"
+OTP_LIMIT_TARGET_HOUR = int(os.getenv("OTP_LIMIT_TARGET_HOUR", "5"))
+OTP_LIMIT_TARGET_DAY = int(os.getenv("OTP_LIMIT_TARGET_DAY", "10"))
+OTP_LIMIT_IP_HOUR = int(os.getenv("OTP_LIMIT_IP_HOUR", "20"))
+OTP_DAILY_CAP = int(os.getenv("OTP_DAILY_CAP", "500"))
 
 SPEEDSMS_TOKEN = os.getenv("SPEEDSMS_TOKEN", "")
 SPEEDSMS_TYPE = os.getenv("SPEEDSMS_TYPE", "4")
@@ -132,7 +146,38 @@ def email_sender(email: str):
             raise HTTPException(status_code=503, detail=str(e))
     return send
 
-def issue_otp(db: Session, target: str, sender):
+def client_ip(request: Request) -> str:
+    if TRUST_PROXY:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            # Proxy tin cậy thêm IP thật của client vào CUỐI danh sách; các giá trị phía trước có thể bị giả mạo.
+            return forwarded.split(",")[-1].strip()
+    return request.client.host if request.client else "unknown"
+
+def enforce_rate_limit(db: Session, target: str, ip: str):
+    now = datetime.utcnow()
+    hour_ago = now - timedelta(hours=1)
+    day_ago = now - timedelta(days=1)
+    log = models.OtpRequestLog
+
+    db.query(log).filter(log.created_at < now - timedelta(days=2)).delete(synchronize_session=False)
+
+    def count(*conditions):
+        return db.query(func.count(log.id)).filter(*conditions).scalar() or 0
+
+    if count(log.target == target, log.created_at > hour_ago) >= OTP_LIMIT_TARGET_HOUR:
+        raise HTTPException(status_code=429, detail="Bạn đã yêu cầu mã quá nhiều lần, hãy thử lại sau 1 giờ!")
+    if count(log.target == target, log.created_at > day_ago) >= OTP_LIMIT_TARGET_DAY:
+        raise HTTPException(status_code=429, detail="Hôm nay bạn đã yêu cầu mã quá nhiều lần, hãy thử lại vào ngày mai!")
+    if count(log.ip == ip, log.created_at > hour_ago) >= OTP_LIMIT_IP_HOUR:
+        raise HTTPException(status_code=429, detail="Có quá nhiều yêu cầu từ mạng của bạn, hãy thử lại sau!")
+    if count(log.created_at > day_ago) >= OTP_DAILY_CAP:
+        raise HTTPException(status_code=503, detail="Hệ thống tạm thời không gửi được mã, hãy thử lại sau!")
+
+    db.add(log(target=target, ip=ip))
+    db.commit()
+
+def issue_otp(db: Session, target: str, sender, ip: str = "unknown"):
     now = datetime.utcnow()
     last = db.query(models.OtpCode).filter(models.OtpCode.target == target).order_by(models.OtpCode.id.desc()).first()
     if last:
@@ -140,6 +185,8 @@ def issue_otp(db: Session, target: str, sender):
         if elapsed < RESEND_COOLDOWN_SECONDS:
             wait = int(RESEND_COOLDOWN_SECONDS - elapsed) + 1
             raise HTTPException(status_code=429, detail=f"Vui lòng đợi {wait} giây rồi gửi lại mã!")
+
+    enforce_rate_limit(db, target, ip)
 
     code = f"{secrets.randbelow(1000000):06d}"
     sender(code)
@@ -183,9 +230,9 @@ def check_otp(db: Session, target: str, code: str):
     record.used = True
 
 @router.post("/request-otp")
-def request_login_otp(body: PhoneRequest, db: Session = Depends(get_db)):
+def request_login_otp(body: PhoneRequest, request: Request, db: Session = Depends(get_db)):
     phone = normalize_phone(body.phone)
-    return issue_otp(db, phone, lambda code: send_sms(phone, code))
+    return issue_otp(db, phone, lambda code: send_sms(phone, code), client_ip(request))
 
 @router.post("/verify-otp")
 def verify_login_otp(body: PhoneVerify, db: Session = Depends(get_db)):
@@ -216,12 +263,12 @@ def get_me(user: models.User = Depends(get_current_user)):
     return {"user_id": user.id, "phone": user.phone, "email": user.email, "name": user.name}
 
 @router.post("/email/request")
-def request_email_otp(body: EmailRequest, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+def request_email_otp(body: EmailRequest, request: Request, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     email = normalize_email(body.email)
     owner = db.query(models.User).filter(models.User.email == email).first()
     if owner and owner.id != user.id:
         raise HTTPException(status_code=409, detail="Email này đã được liên kết với tài khoản khác!")
-    return issue_otp(db, email, email_sender(email))
+    return issue_otp(db, email, email_sender(email), client_ip(request))
 
 @router.post("/email/verify")
 def verify_email_otp(body: EmailVerify, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -25,12 +25,27 @@ MIGRATIONS = {
         "verification_note": "varchar",
         "current_lat": "float",
         "current_lon": "float",
+        "location_updated_at": "timestamp",
+        "is_available": "boolean default false",
+        "max_distance": "float default 10",
+        "bank_code": "varchar",
+        "bank_account": "varchar",
+        "bank_holder": "varchar",
     },
     "sos_requests": {
         "cancel_reason": "varchar",
         "cancelled_by": "integer",
+        "payment_method": "varchar",
+        "payment_status": "varchar default 'UNPAID'",
+        "paid_at": "timestamp",
     },
 }
+
+INDEXES = [
+    "create unique index if not exists ix_users_email on users (email)",
+    "create unique index if not exists ux_ignored_orders_sos_helper on ignored_orders (sos_id, helper_id)",
+    "create unique index if not exists ux_reviews_sos_reviewer on reviews (sos_id, reviewer_id)",
+]
 
 def get_db():
     db = SessionLocal()
@@ -49,4 +64,10 @@ def init_db():
             for name, ddl in new_columns.items():
                 if name not in existing:
                     conn.execute(text(f"alter table {table} add column {name} {ddl}"))
-        conn.execute(text("create unique index if not exists ix_users_email on users (email)"))
+
+    for statement in INDEXES:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(statement))
+        except Exception as e:
+            print(f"[DB] Bỏ qua index (có thể do dữ liệu cũ bị trùng): {e}")

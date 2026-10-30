@@ -19,6 +19,14 @@ class User(Base):
 
     current_lat = Column(Float, nullable=True)
     current_lon = Column(Float, nullable=True)
+    location_updated_at = Column(DateTime, nullable=True)
+
+    is_available = Column(Boolean, default=False)
+    max_distance = Column(Float, default=10.0)
+
+    bank_code = Column(String, nullable=True)
+    bank_account = Column(String, nullable=True)
+    bank_holder = Column(String, nullable=True)
 
 class OtpCode(Base):
     __tablename__ = "otp_codes"
@@ -47,6 +55,10 @@ class SOSRequest(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     cancel_reason = Column(String, nullable=True)
     cancelled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    payment_method = Column(String, nullable=True)
+    payment_status = Column(String, default="UNPAID")
+    paid_at = Column(DateTime, nullable=True)
 
 class Message(Base):
     __tablename__ = "messages"
@@ -81,4 +93,20 @@ class IgnoredOrder(Base):
     id = Column(Integer, primary_key=True, index=True)
     sos_id = Column(Integer, ForeignKey("sos_requests.id"), index=True, nullable=False)
     helper_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class OtpRequestLog(Base):
+    __tablename__ = "otp_request_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    target = Column(String, index=True, nullable=False)
+    ip = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    endpoint = Column(String, unique=True, nullable=False)
+    p256dh = Column(String, nullable=False)
+    auth = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

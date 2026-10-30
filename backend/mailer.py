@@ -5,7 +5,7 @@ import urllib.request
 import urllib.error
 from sqlalchemy.orm import Session
 
-from . import models
+from . import models, push
 from .database import SessionLocal
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
@@ -50,6 +50,7 @@ def notify_user(db: Session, user_id: int, subject: str, html: str) -> bool:
         return False
 
 def notify_in_background(user_id, subject: str, message: str):
+    """Gửi thông báo cho user qua email (nếu đã liên kết) và thông báo đẩy (nếu đã bật)."""
     if not user_id:
         return
     db = SessionLocal()
@@ -58,5 +59,9 @@ def notify_in_background(user_id, subject: str, message: str):
         notify_user(db, user_id, subject, body)
     except Exception as e:
         print(f"[MAIL] Lỗi gửi thông báo: {e}")
+    try:
+        push.send_push_to_user(db, user_id, subject, message, tag="sos-update")
+    except Exception as e:
+        print(f"[PUSH] Lỗi gửi thông báo đẩy: {e}")
     finally:
         db.close()

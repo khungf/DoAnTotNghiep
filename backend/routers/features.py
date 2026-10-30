@@ -2,15 +2,17 @@ import os
 import json
 import hmac
 import time
+from datetime import datetime
 import urllib.parse
 import urllib.request
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from .. import models, database, auth
+from .. import models, database, auth, realtime, push
 from ..mailer import notify_in_background
 from .sos import calculate_distance, get_rating, other_party
 
@@ -56,6 +58,17 @@ class VerificationDecision(BaseModel):
 class ReviewCreate(BaseModel):
     rating: int
     comment: str = ""
+
+class AvailabilityUpdate(BaseModel):
+    available: bool
+    max_distance: float = 10.0
+
+class PushSubscribe(BaseModel):
+    endpoint: str
+    keys: dict
+
+class PushUnsubscribe(BaseModel):
+    endpoint: str
 
 def get_sos_or_404(db: Session, sos_id: int):
     sos = db.query(models.SOSRequest).filter(models.SOSRequest.id == sos_id).first()
@@ -106,10 +119,59 @@ def describe_place(tags: dict):
 
 @router.put("/helper/location")
 def update_helper_location(body: LocationUpdate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    if not (-90 <= body.latitude <= 90 and -180 <= body.longitude <= 180):
+        raise HTTPException(status_code=400, detail="Tọa độ không hợp lệ!")
     current.current_lat = body.latitude
     current.current_lon = body.longitude
+    current.location_updated_at = datetime.utcnow()
     db.commit()
+
+    # Đẩy vị trí thợ tới khách ngay lập tức (không cần khách chờ lượt polling).
+    active = db.query(models.SOSRequest.id, models.SOSRequest.user_id).filter(
+        models.SOSRequest.helper_id == current.id,
+        models.SOSRequest.status.notin_(CLOSED_STATUSES),
+    ).all()
+    for sos_id, user_id in active:
+        realtime.manager.publish([user_id], {"type": "helper_location", "sos_id": sos_id, "latitude": body.latitude, "longitude": body.longitude})
     return {"message": "Đã cập nhật vị trí thợ."}
+
+@router.put("/helper/availability")
+def set_availability(body: AvailabilityUpdate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    current.is_available = body.available
+    current.max_distance = max(1.0, min(body.max_distance, 50.0))
+    db.commit()
+    return {"available": current.is_available, "max_distance": current.max_distance}
+
+@router.get("/push/public-key")
+def get_push_public_key(current: models.User = Depends(auth.get_current_user)):
+    return {"public_key": push.VAPID_PUBLIC_KEY if push.push_enabled() else ""}
+
+@router.post("/push/subscribe")
+def push_subscribe(body: PushSubscribe, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    p256dh = str(body.keys.get("p256dh", ""))
+    auth_key = str(body.keys.get("auth", ""))
+    if not body.endpoint.startswith("https://") or len(body.endpoint) > 1000 or not p256dh or not auth_key:
+        raise HTTPException(status_code=400, detail="Thông tin đăng ký thông báo không hợp lệ!")
+    sub = db.query(models.PushSubscription).filter(models.PushSubscription.endpoint == body.endpoint).first()
+    if sub:
+        # Cùng một trình duyệt có thể được người khác đăng nhập: chuyển quyền sở hữu cho tài khoản hiện tại.
+        sub.user_id, sub.p256dh, sub.auth = current.id, p256dh, auth_key
+    else:
+        db.add(models.PushSubscription(user_id=current.id, endpoint=body.endpoint, p256dh=p256dh, auth=auth_key))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+    return {"message": "Đã bật thông báo đẩy."}
+
+@router.post("/push/unsubscribe")
+def push_unsubscribe(body: PushUnsubscribe, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    db.query(models.PushSubscription).filter(
+        models.PushSubscription.endpoint == body.endpoint,
+        models.PushSubscription.user_id == current.id,
+    ).delete(synchronize_session=False)
+    db.commit()
+    return {"message": "Đã tắt thông báo đẩy."}
 
 @router.get("/sos/{sos_id}/helper-location")
 def get_helper_location(sos_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
@@ -354,7 +416,11 @@ def create_review(sos_id: int, body: ReviewCreate, current: models.User = Depend
     if target_id is None:
         raise HTTPException(status_code=400, detail="Đơn chưa có đối phương để đánh giá!")
     db.add(models.Review(sos_id=sos_id, reviewer_id=current.id, target_id=target_id, rating=body.rating, comment=body.comment.strip()[:500] or None))
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Bạn đã đánh giá đơn này rồi!")
     return {"message": "Cảm ơn bạn đã đánh giá!"}
 
 @router.get("/users/{user_id}/rating")
