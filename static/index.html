@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="/static/manifest.json">
-<title>P2P SOS Unified Platform</title>
+<title>P2P SOS Unified</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -13,31 +13,73 @@ body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f
 .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #f8f9fc; display: flex; flex-direction: column; }
 .header { background: linear-gradient(90deg, #dc2626, #f97316); color: #fff; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
 .header-left { display: flex; align-items: center; gap: 10px; }
-.header h1 { margin: 0; font-size: 18px; }
-.btn-lang { background: rgba(255,255,255,0.25); border: 1px solid #fff; color: #fff; padding: 4px 8px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
+.header h1 { margin: 0; font-size: 20px; }
+.gear-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #fff; font-size: 18px; transition: background 0.2s; }
+.gear-btn:hover { background: rgba(255,255,255,0.35); }
 
-.tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; position: relative; }
-.tab { flex: 1; padding: 12px 6px; border: none; background: #fff; font-size: 13px; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; }
+.tabs { display: flex; background: #fff; border-bottom: 1px solid #e5e7eb; }
+.tab { flex: 1; padding: 13px 8px; border: none; background: #fff; font-size: 13px; color: #6b7280; cursor: pointer; border-bottom: 3px solid transparent; }
 .tab.active { color: #dc2626; font-weight: bold; border-bottom-color: #dc2626; background: #fff; }
+
 .content { padding: 14px; flex: 1; }
 .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
 .card.danger { background: #fff1f1; border-color: #fecaca; }
-.card h3 { margin: 0 0 10px; font-size: 15px; }
-
-.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-.dash-item { background: #f3f4f6; padding: 10px; border-radius: 10px; text-align: center; }
-.dash-item .num { font-size: 18px; font-weight: bold; color: #dc2626; }
-
-input, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; margin-bottom: 8px; }
-.btn { width: 100%; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: bold; color: #fff; cursor: pointer; }
-.btn.red { background: #dc2626; }
+.card.wait { background: #fff7ed; border-color: #fdba74; text-align: center; }
+.card h3 { margin: 0 0 10px; font-size: 16px; }
+.card.danger h3 { color: #b91c1c; }
+.row { display: flex; gap: 10px; align-items: center; }
+.muted { font-size: 12px; color: #6b7280; font-weight: 600; }
+.link { color: #2563eb; font-weight: bold; font-size: 13px; cursor: pointer; background: none; border: none; padding: 0; }
+.link-danger { color: #dc2626; font-weight: bold; font-size: 13px; cursor: pointer; background: none; border: none; text-decoration: underline; }
+input, select { width: 100%; padding: 11px 14px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 15px; background: #fff; margin-bottom: 8px; }
+.btn { width: 100%; border: none; border-radius: 12px; padding: 12px; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; }
+a.btn { display: inline-block; text-align: center; text-decoration: none; }
+.btn.red { background: #dc2626; font-size: 16px; padding: 14px; }
 .btn.blue { background: #2563eb; }
+.btn.orange { background: #f59e0b; }
 .btn.green { background: #16a34a; }
 .btn.grey { background: #6b7280; }
-.btn.small { width: auto; padding: 6px 10px; font-size: 12px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.small { width: auto; padding: 8px 12px; font-size: 13px; white-space: nowrap; }
+.empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 15px; }
+.notice { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; padding: 10px 12px; border-radius: 12px; font-size: 14px; margin-bottom: 14px; }
 
-.chat-box { height: 180px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 10px; padding: 8px; margin-bottom: 8px; font-size: 13px; }
-.msg { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #f3f4f6; }
+.chat-card { border: 2px solid #93c5fd; background: #eff6ff; }
+.chat-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 10px; }
+.chat-head h3 { margin: 0; font-size: 15px; }
+.chat-actions { display: flex; gap: 6px; align-items: center; }
+.approval-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 12px; margin-bottom: 10px; border-radius: 12px; text-align: center; font-size: 14px; }
+.approval-box.ok { background: #ecfdf5; border-color: #6ee7b7; }
+.approval-box.done { background: #f3f4f6; border-color: #d1d5db; }
+.approval-box .price { color: #dc2626; font-size: 18px; }
+.approval-box .hint { font-size: 12px; color: #6b7280; margin-top: 8px; }
+.approval-actions { display: flex; gap: 10px; margin-top: 10px; }
+.chat-box { height: 200px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 12px; padding: 8px; margin-bottom: 8px; font-size: 14px; }
+.msg { margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid #f3f4f6; }
+.msg .time { float: right; font-size: 11px; color: #9ca3af; }
+.msg.me b { color: #2563eb; }
+
+/* Switch Toggle */
+.switch-container { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e5e7eb; padding: 14px 16px; border-radius: 14px; margin-bottom: 14px; }
+.switch { position: relative; display: inline-block; width: 56px; height: 30px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 30px; }
+.slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+input:checked + .slider { background-color: #16a34a; }
+input:checked + .slider:before { transform: translateX(26px); }
+
+/* Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+.modal-content { background: #fff; width: 92%; max-width: 450px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 85vh; display: flex; flex-direction: column; }
+.modal-title { color: #dc2626; font-size: 18px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+.settings-tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 14px; }
+.s-tab { flex: 1; padding: 10px 4px; background: none; border: none; font-size: 13px; font-weight: bold; color: #6b7280; cursor: pointer; text-align: center; }
+.s-tab.active { color: #dc2626; border-bottom: 2px solid #dc2626; margin-bottom: -2px; }
+.s-pane { display: none; overflow-y: auto; max-height: 280px; }
+.s-pane.active { display: block; }
+.history-item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+
+.footer { text-align: center; padding: 12px; background: #e5e7eb; font-size: 13px; color: #374151; }
 .hidden { display: none !important; }
 </style>
 </head>
@@ -45,205 +87,416 @@ input, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; bord
 <div class="app">
     <div class="header">
         <div class="header-left">
-            <h1 id="appTitle">🚨 P2P SOS Rescue</h1>
+            <button class="gear-btn" onclick="openSettingsModal()" title="Cài đặt & Lịch sử">⚙️</button>
+            <h1>🚨 P2P SOS Unified</h1>
         </div>
-        <div>
-            <button class="btn-lang" onclick="toggleLanguage()" id="langBtn">EN</button>
-            <button class="btn-lang" onclick="logout()">⎋</button>
+        <span class="muted" id="onlineBadge" style="color:#fff;">Offline</span>
+    </div>
+
+    <!-- SỐ ĐIỆN THOẠI KHẨN CẤP -->
+    <div class="card" style="background: #fef2f2; border-color: #fca5a5; text-align: center; margin: 14px 14px 0 14px;">
+        <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 14px;">🚨 SỐ ĐIỆN THOẠI KHẨN CẤP</div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <a href="tel:113" class="btn red" style="padding: 8px; font-size: 13px; text-decoration:none;">📞 113 (Công an)</a>
+            <a href="tel:115" class="btn orange" style="padding: 8px; font-size: 13px; background: #0284c7; text-decoration:none;">🚑 115 (Cấp cứu)</a>
         </div>
     </div>
 
-    <!-- Nút Số điện thoại Khẩn cấp -->
-    <div class="card" style="background: #fef2f2; border-color: #fca5a5; text-align: center; margin: 12px 14px 0 14px;">
-        <div style="font-weight: bold; color: #b91c1c; margin-bottom: 6px; font-size: 13px;" data-i18n="emergency_call">🚨 SỐ KHẨN CẤP</div>
-        <div style="display: flex; gap: 8px; justify-content: center;">
-            <a href="tel:113" class="btn red" style="padding: 6px; font-size: 12px; text-decoration: none;">📞 113 (Công an)</a>
-            <a href="tel:115" class="btn blue" style="padding: 6px; font-size: 12px; text-decoration: none; background: #0284c7;">🚑 115 (Cấp cứu)</a>
-        </div>
-    </div>
-
-    <div class="tabs" style="margin-top: 10px;">
-        <button class="tab active" id="tabVictim" onclick="switchTab('victim')" data-i18n="tab_victim">⚠️ Gặp Nạn</button>
-        <button class="tab" id="tabHelper" onclick="switchTab('helper')" data-i18n="tab_helper">📍 Thợ Cứu Hộ</button>
-        <button class="tab" id="tabServices" onclick="switchTab('services')" data-i18n="tab_services">🗺️ Cây Xăng/Tiệm Xe</button>
+    <div class="tabs" style="margin-top: 14px;">
+        <button class="tab active" id="tabVictim" onclick="switchTab('victim')">⚠️ Chế Độ Gặp Nạn</button>
+        <button class="tab" id="tabHelper" onclick="switchTab('helper')">📍 Chế Độ Thợ Cứu Hộ</button>
     </div>
 
     <div class="content">
-        <!-- CHẾ ĐỘ NẠN NHÂN -->
+        <div class="notice hidden" id="noticeBox"></div>
+
+        <div class="card">
+            <div class="row" style="justify-content: space-between;">
+                <span class="muted">TÀI KHOẢN ĐANG DÙNG</span>
+                <button class="link" onclick="logout()">Đăng xuất ⎋</button>
+            </div>
+            <div style="margin-top: 8px; font-size: 15px;"><b id="accName"></b></div>
+            <div class="muted" id="idLabel" style="margin-top: 2px;"></div>
+        </div>
+
+        <div class="card wait hidden" id="waitCard"></div>
+
+        <!-- CHẾ ĐỘ GẶP NẠN -->
         <div id="victimPanel">
             <div class="card danger">
-                <h3 data-i18n="sos_prompt">⚠️ Phát Tín Hiệu SOS Khẩn Cấp</h3>
-                <input type="text" id="issueInput" placeholder="Mô tả sự cố (hết xăng, thủng lốp...)" data-i18n-ph="ph_issue">
-                <input type="number" id="priceInput" placeholder="Giá đề xuất (VNĐ)" value="50000">
-                <button class="btn red" onclick="sendSOS()" data-i18n="btn_sos">GỬI TÍN HIỆU SOS 🚨</button>
-            </div>
-
-            <!-- Tính năng 3: Gửi vị trí GPS cho Thân nhân -->
-            <div class="card">
-                <h3 data-i18n="emergency_contacts_title">🛡️ Khẩn Cấp Thân Nhân</h3>
-                <input type="text" id="contactsInput" placeholder="SĐT thân nhân (VD: 0901234567)">
-                <div style="display: flex; gap: 6px;">
-                    <button class="btn blue small" onclick="saveContacts()" data-i18n="btn_save">Lưu SĐT</button>
-                    <button class="btn red small" onclick="sendToRelatives()" data-i18n="btn_send_relatives">Gửi GPS Cho Thân Nhân 📲</button>
-                </div>
+                <h3>⚠️ Bạn đang gặp sự cố trên đường?</h3>
+                <input type="text" id="issueInput" placeholder="Mô tả sự cố (hết xăng, thủng lốp...)">
+                <input type="number" id="priceInput" placeholder="Giá đề xuất ban đầu (VNĐ)" value="50000">
+                <button class="btn red" id="sosBtn" onclick="sendSOS()">Phát Tín Hiệu Khẩn Cấp 🚨</button>
             </div>
         </div>
 
-        <!-- CHẾ ĐỘ THỢ CỨU HỘ & DASHBOARD -->
+        <!-- CHẾ ĐỘ THỢ CỨU HỘ -->
         <div id="helperPanel" class="hidden">
-            <div class="card">
-                <h3 data-i18n="dashboard_title">📊 Dashboard Thống Kê Thu Nhập</h3>
-                <div class="dash-grid">
-                    <div class="dash-item"><div class="num" id="dashCompleted">0</div><div style="font-size:11px;" data-i18n="dash_completed">Cuốc Hoàn Thành</div></div>
-                    <div class="dash-item"><div class="num" id="dashEarnings">0 đ</div><div style="font-size:11px;" data-i18n="dash_earnings">Tổng Thu Nhập</div></div>
+            <div class="switch-container">
+                <div>
+                    <div style="font-weight: bold; font-size: 15px;" id="statusLabelText">Trạng thái: Đang ngưng hoạt động</div>
+                    <div class="muted" id="statusSubText">Gạt công tắc sang xanh để sẵn sàng nhận đơn</div>
                 </div>
-                <div style="font-size: 12px; text-align: center;">Đánh giá trung bình: <b id="dashRating">5.0 ⭐</b></div>
+                <label class="switch">
+                    <input type="checkbox" id="workToggle" onchange="toggleWorkStatus()">
+                    <span class="slider"></span>
+                </label>
             </div>
-
             <div class="card" style="text-align: center;">
-                <h3 data-i18n="radar_title">📡 Radar Quét Đơn</h3>
-                <div id="radarText" style="color:#dc2626; font-weight:bold;">🔴 Đang Tắt</div>
-                <button class="btn green" style="margin-top:10px;" onclick="toggleRadar()" id="btnRadar">Bật Sẵn Sàng Nhận Đơn</button>
+                <h3>📡 Radar quét đơn cứu hộ</h3>
+                <div id="radarStatusText" style="color: #dc2626; font-weight: bold; margin-top: 10px;">🔴 Đang ngưng hoạt động</div>
             </div>
         </div>
 
-        <!-- CÂY XĂNG & TIỆM SỬA XE GẦN NHẤT -->
-        <div id="servicesPanel" class="hidden">
-            <div class="card">
-                <h3 data-i18n="nearby_title">🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn</h3>
-                <button class="btn blue small" onclick="loadNearbyServices()" style="margin-bottom:10px;" data-i18n="btn_scan_nearby">Quét Địa Điểm Gần Nhất 🔍</button>
-                <div id="servicesList"><div style="color:#9ca3af; font-size:12px; text-align:center;">Bấm nút để tìm cây xăng hoặc tiệm xe gần bạn.</div></div>
+        <!-- POPUP CÀI ĐẶT & LỊCH SỬ -->
+        <div class="modal-overlay hidden" id="settingsModal">
+            <div class="modal-content">
+                <div class="modal-title">⚙️ Cài Đặt & Lịch Sử</div>
+                <div class="settings-tabs">
+                    <button class="s-tab active" onclick="switchSettingsTab('config')">Cài Đặt</button>
+                    <button class="s-tab" onclick="switchSettingsTab('rescueHistory')">Lịch Sử Cứu Hộ</button>
+                    <button class="s-tab" onclick="switchSettingsTab('issueHistory')">Lịch Sử Sự Cố</button>
+                </div>
+                <div class="s-pane active" id="paneConfig">
+                    <div style="margin-bottom: 14px;">
+                        <label style="font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block;">Tự động nhận đơn (Nổ đơn)</label>
+                        <select id="autoDispatchSelect" onchange="saveSettings()">
+                            <option value="ON">Bật 🟢</option>
+                            <option value="OFF">Tắt 🔴</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 14px;">
+                        <label style="font-size: 13px; font-weight: bold; margin-bottom: 6px; display: block;">Khoảng cách tối đa nhận đơn</label>
+                        <select id="maxDistSelect" onchange="saveSettings()">
+                            <option value="3">3 km</option>
+                            <option value="5">5 km</option>
+                            <option value="10" selected>10 km</option>
+                            <option value="20">20 km</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="s-pane" id="paneRescueHistory">
+                    <div id="rescueHistoryList"><div class="empty">Đang tải lịch sử cứu hộ...</div></div>
+                </div>
+                <div class="s-pane" id="paneIssueHistory">
+                    <div id="issueHistoryList"><div class="empty">Đang tải lịch sử sự cố...</div></div>
+                </div>
+                <button class="btn blue" onclick="closeSettingsModal()" style="width: 100%; margin-top: 15px;">Đóng</button>
             </div>
         </div>
 
-        <!-- KHUNG CHAT & LIVE TRACKING BẢN ĐỒ -->
-        <div class="card hidden" id="chatSection">
-            <div id="map" style="height: 160px; border-radius: 10px; margin-bottom: 10px;"></div>
-            <h3 id="chatTitle">💬 Khung Chat & Thương Lượng</h3>
+        <!-- POPUP NỔ ĐƠN -->
+        <div class="modal-overlay hidden" id="orderModal">
+            <div class="modal-content" style="text-align: center;">
+                <div class="modal-title" style="color: #dc2626;">🔔 NỔ ĐƠN CỨU HỘ MỚI!</div>
+                <div id="modalBody" style="font-size: 15px; margin: 10px 0;"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn grey" onclick="ignoreOrder()">Bỏ qua</button>
+                    <button class="btn green" onclick="acceptDispatchedOrder()">Nhận Cuốc ✅</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KHUNG CHAT & THƯƠNG LƯỢNG -->
+        <div class="card chat-card hidden" id="chatSection">
+            <div id="mapContainer" class="hidden">
+                <div id="map" style="height: 160px; border-radius: 10px; margin-bottom: 10px;"></div>
+            </div>
+            <div class="chat-head">
+                <h3 id="chatTitle">💬 Khung chat</h3>
+                <div class="chat-actions">
+                    <a class="btn blue small hidden" id="navIconBtn" href="#" target="_blank">🧭 Chỉ đường</a>
+                    <a class="btn green small hidden" id="callBtn" href="#">📞 Gọi</a>
+                </div>
+            </div>
+            <div id="approvalSection"></div>
             <div class="chat-box" id="chatContainer"></div>
-            <div style="display:flex; gap:6px;">
-                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." style="margin-bottom:0;">
-                <button class="btn blue small" onclick="sendChat()" data-i18n="btn_send">Gửi</button>
+            <div class="row" id="chatInputRow">
+                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') sendChat()">
+                <button class="btn blue small" onclick="sendChat()">Gửi</button>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 8px;">
+                <button class="btn grey small" onclick="openCancelModal()" style="background: #6b7280;">🚫 Hủy đơn</button>
+                <button class="btn grey small" onclick="openReportModal()" style="background: #b91c1c;">⚠️ Báo cáo / An toàn</button>
             </div>
         </div>
     </div>
+    <div class="footer">Trạng thái hệ thống: <b id="sysStatus" class="err">Đang kết nối...</b></div>
 </div>
 
 <script>
 const API = window.location.origin;
-let currentLang = "VI";
+const STATUS_TEXT = { PENDING: "Chờ thợ", WAITING_APPROVAL: "Chờ duyệt", CHATTING: "Thương lượng", NEGOTIATING: "Đang cứu hộ", COMPLETED: "Hoàn thành", EXPIRED: "Hết hạn", CANCELLED: "Đã hủy" };
+const CHAT_STATUSES = ["WAITING_APPROVAL", "CHATTING", "NEGOTIATING", "COMPLETED"];
+const RESTORE_STATUSES = ["WAITING_APPROVAL", "CHATTING", "NEGOTIATING"];
+
+let currentTab = "victim";
+let pollTimer = null;
+let radarTimer = null;
 let activeSosId = null;
+let currentIncomingSosId = null;
 let mapInstance = null, markerInstance = null;
-let trackingInterval = null;
-let isRadarOn = false;
+let currentSos = null;
 
-// ĐA NGÔN NGỮ (VI - EN)
-const TRANSLATIONS = {
-    VI: {
-        appTitle: "🚨 P2P SOS Rescue", emergency_call: "🚨 SỐ KHẨN CẤP", tab_victim: "⚠️ Gặp Nạn", tab_helper: "📍 Thợ Cứu Hộ", tab_services: "🗺️ Cây Xăng/Tiệm Xe",
-        sos_prompt: "⚠️ Phát Tín Hiệu SOS Khẩn Cấp", ph_issue: "Mô tả sự cố (hết xăng, thủng lốp...)", btn_sos: "GỬI TÍN HIỆU SOS 🚨",
-        emergency_contacts_title: "🛡️ Khẩn Cấp Thân Nhân", btn_save: "Lưu SĐT", btn_send_relatives: "Gửi GPS Cho Thân Nhân 📲",
-        dashboard_title: "📊 Dashboard Thống Kê Thu Nhập", dash_completed: "Cuốc Hoàn Thành", dash_earnings: "Tổng Thu Nhập",
-        radar_title: "📡 Radar Quét Đơn", nearby_title: "🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn", btn_scan_nearby: "Quét Địa Điểm Gần Nhất 🔍", btn_send: "Gửi"
-    },
-    EN: {
-        appTitle: "🚨 P2P SOS Rescue", emergency_call: "🚨 EMERGENCY CALL", tab_victim: "⚠️ Victim Mode", tab_helper: "📍 Rescuer Mode", tab_services: "🗺️ Gas/Repair",
-        sos_prompt: "⚠️ Send Emergency SOS Signal", ph_issue: "Describe issue (out of gas, flat tire...)", btn_sos: "SEND SOS SIGNAL 🚨",
-        emergency_contacts_title: "🛡️ Emergency Contacts", btn_save: "Save Number", btn_send_relatives: "Send GPS to Family 📲",
-        dashboard_title: "📊 Earnings Dashboard", dash_completed: "Completed Jobs", dash_earnings: "Total Income",
-        radar_title: "📡 Order Radar", nearby_title: "🗺️ Nearby Gas Stations & Repair Shops", btn_scan_nearby: "Scan Nearby Places 🔍", btn_send: "Send"
-    }
-};
+if (!sessionStorage.getItem("user_id")) { window.location.replace("/static/login.html"); }
+const $ = id => document.getElementById(id);
+const money = n => Number(n).toLocaleString("vi-VN");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function toggleLanguage() {
-    currentLang = currentLang === "VI" ? "EN" : "VI";
-    document.getElementById("langBtn").textContent = currentLang === "VI" ? "EN" : "VI";
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.getAttribute("data-i18n");
-        if (TRANSLATIONS[currentLang][key]) el.textContent = TRANSLATIONS[currentLang][key];
-    });
-    document.querySelectorAll("[data-i18n-ph]").forEach(el => {
-        const key = el.getAttribute("data-i18n-ph");
-        if (TRANSLATIONS[currentLang][key]) el.placeholder = TRANSLATIONS[currentLang][key];
-    });
+function loadSettings() {
+    $("workToggle").checked = localStorage.getItem("work_status") === "ON";
+    if (localStorage.getItem("auto_dispatch")) $("autoDispatchSelect").value = localStorage.getItem("auto_dispatch");
+    if (localStorage.getItem("max_distance")) $("maxDistSelect").value = localStorage.getItem("max_distance");
+    updateHelperStatusUI();
 }
 
-function switchTab(tab) {
-    // Ẩn hiện các panel nội dung
-    document.getElementById("victimPanel").classList.toggle("hidden", tab !== "victim");
-    document.getElementById("helperPanel").classList.toggle("hidden", tab !== "helper");
-    document.getElementById("servicesPanel").classList.toggle("hidden", tab !== "services");
+function toggleWorkStatus() {
+    localStorage.setItem("work_status", $("workToggle").checked ? "ON" : "OFF");
+    updateHelperStatusUI();
+}
 
-    // Xử lý thanh ngang màu đỏ chạy qua tab được chọn
-    document.getElementById("tabVictim").classList.toggle("active", tab === "victim");
-    document.getElementById("tabHelper").classList.toggle("active", tab === "helper");
-    document.getElementById("tabServices").classList.toggle("active", tab === "services");
+function saveSettings() {
+    localStorage.setItem("auto_dispatch", $("autoDispatchSelect").value);
+    localStorage.setItem("max_distance", $("maxDistSelect").value);
+    updateHelperStatusUI();
+}
 
-    if (tab === 'helper') {
-        loadDashboard();
-    }
+function updateHelperStatusUI() {
+    const isWorking = $("workToggle").checked;
+    $("radarStatusText").textContent = isWorking ? "🟢 Đang quét đơn cứu hộ..." : "🔴 Đang ngưng hoạt động";
+    $("radarStatusText").style.color = isWorking ? "#16a34a" : "#dc2626";
+}
+
+function openSettingsModal() {
+    $("settingsModal").classList.remove("hidden");
+    loadHistoryIntoSettings();
+}
+function closeSettingsModal() { $("settingsModal").classList.add("hidden"); }
+
+function switchSettingsTab(tabName) {
+    document.querySelectorAll(".s-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".s-pane").forEach(p => p.classList.remove("active"));
+    if (tabName === 'config') { event.currentTarget.classList.add("active"); $("paneConfig").classList.add("active"); }
+    else if (tabName === 'rescueHistory') { event.currentTarget.classList.add("active"); $("paneRescueHistory").classList.add("active"); }
+    else if (tabName === 'issueHistory') { event.currentTarget.classList.add("active"); $("paneIssueHistory").classList.add("active"); }
+}
+
+async function loadHistoryIntoSettings() {
+    const uid = parseInt(sessionStorage.getItem("user_id"));
+    try {
+        const list = await api(`/api/users/${uid}/sos`);
+        $("rescueHistoryList").innerHTML = list.filter(s => s.role === "Thợ").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${STATUS_TEXT[s.status] || s.status}</b></div>`).join("") || '<div class="empty">Chưa có lịch sử.</div>';
+        $("issueHistoryList").innerHTML = list.filter(s => s.role === "Khách").map(s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${STATUS_TEXT[s.status] || s.status}</b></div>`).join("") || '<div class="empty">Chưa có lịch sử.</div>';
+    } catch (e) {}
 }
 
 async function api(path, options = {}) {
     options.headers = Object.assign({ "Authorization": "Bearer " + (sessionStorage.getItem("token") || ""), "Content-Type": "application/json" }, options.headers);
     const res = await fetch(API + path, options);
-    return res.json();
+    let body = null;
+    try { body = await res.json(); } catch (e) {}
+    if (!res.ok) throw new Error(body?.detail || "Lỗi " + res.status);
+    return body;
 }
 
-// LIVE TRACKING: Cập nhật vị trí thợ di chuyển trên bản đồ
-function startLiveTracking(sosId) {
-    if (trackingInterval) clearInterval(trackingInterval);
-    trackingInterval = setInterval(async () => {
-        const data = await api(`/api/sos/${sosId}/helper-location`);
-        if (data.latitude && data.longitude) {
-            if (!mapInstance) {
-                mapInstance = L.map('map').setView([data.latitude, data.longitude], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
-                markerInstance = L.marker([data.latitude, data.longitude]).addTo(mapInstance).bindPopup("Thợ đang tới!").openPopup();
-            } else {
-                markerInstance.setLatLng([data.latitude, data.longitude]);
-                mapInstance.setView([data.latitude, data.longitude]);
-            }
+function switchTab(tab) {
+    currentTab = tab;
+    $("victimPanel").classList.toggle("hidden", tab !== "victim");
+    $("helperPanel").classList.toggle("hidden", tab !== "helper");
+    $("tabVictim").classList.toggle("active", tab === "victim");
+    $("tabHelper").classList.toggle("active", tab === "helper");
+    if (activeSosId) refreshChat();
+}
+
+async function sendSOS() {
+    const issue = $("issueInput").value.trim();
+    const price = parseFloat($("priceInput").value);
+    if (!issue || !price) { alert("Vui lòng điền đủ thông tin!"); return; }
+    
+    let url = `/api/sos?issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            url += `&latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}`;
+            submitSOSRequest(url);
+        }, () => submitSOSRequest(url));
+    } else { submitSOSRequest(url); }
+}
+
+async function submitSOSRequest(url) {
+    try {
+        const data = await api(url, { method: "POST" });
+        await openChat(data.sos_id, false);
+    } catch (e) { alert(e.message); }
+}
+
+async function backgroundRadarPoll() {
+    if (activeSosId || !$("workToggle").checked || $("autoDispatchSelect")?.value !== "ON") return;
+    try {
+        const data = await api("/api/helper/incoming-order");
+        if (data.has_order && currentIncomingSosId !== data.sos_id) {
+            currentIncomingSosId = data.sos_id;
+            $("modalBody").innerHTML = `Khách: <b>${esc(data.user_name)}</b><br>Sự cố: <b>${esc(data.issue_type)}</b><br>Giá: <b style="color:#dc2626;">${money(data.proposed_price)} VNĐ</b><br>Cách bạn: <b>~${data.distance_km} km</b>`;
+            $("orderModal").classList.remove("hidden");
         }
-    }, 4000);
+    } catch (e) {}
 }
 
-// DỊCH VỤ GẦN NHẤT
-async function loadNearbyServices() {
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        const list = await api(`/api/nearby-services?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-        const box = document.getElementById("servicesList");
-        box.innerHTML = list.map(item => `
-            <div style="border-bottom:1px solid #eee; padding:8px 0;">
-                <b>${item.name}</b> (${item.address})<br>
-                SĐT: <a href="tel:${item.phone}" style="color:#2563eb; font-weight:bold;">${item.phone}</a>
-            </div>
-        `).join("");
-    });
+async function ignoreOrder() {
+    $("orderModal").classList.add("hidden");
+    if (currentIncomingSosId) await api(`/api/sos/${currentIncomingSosId}/ignore`, { method: "PUT" });
+    currentIncomingSosId = null;
 }
 
-// BÁO NGUY THÂN NHÂN
-async function saveContacts() {
-    const contacts = document.getElementById("contactsInput").value;
-    const res = await api("/api/user/emergency-contacts", { method: "POST", body: JSON.stringify({ contacts }) });
-    alert(res.message);
+async function acceptDispatchedOrder() {
+    $("orderModal").classList.add("hidden");
+    const price = prompt("Nhập mức giá đề nghị (VNĐ):", "50000");
+    if (!price) return;
+    try {
+        await api(`/api/sos/${currentIncomingSosId}/negotiate?final_price=${price}`, { method: "PUT" });
+        switchTab('helper');
+        await openChat(currentIncomingSosId, false);
+    } catch (e) { alert(e.message); }
+    currentIncomingSosId = null;
 }
 
-async function sendToRelatives() {
-    if (!activeSosId) { alert("Bạn cần phát SOS trước khi gửi!"); return; }
-    const res = await api(`/api/sos/${activeSosId}/notify-relatives`, { method: "POST" });
-    alert(res.message);
+async function openChat(sosId, restore) {
+    activeSosId = Number(sosId);
+    sessionStorage.setItem("active_sos_id", activeSosId);
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(refreshChat, 3000);
+    await refreshChat();
 }
 
-// DASHBOARD THỢ
-async function loadDashboard() {
-    const res = await api("/api/helper/dashboard");
-    document.getElementById("dashCompleted").textContent = res.total_completed;
-    document.getElementById("dashEarnings").textContent = Number(res.total_earnings).toLocaleString("vi-VN") + " đ";
-    document.getElementById("dashRating").textContent = res.average_rating + " ⭐";
+function approvalHtml(sos, isOwner, isHelper) {
+    const price = sos.agreed_price ? money(sos.agreed_price) : "";
+    const otherName = isOwner ? (sos.helper_name || "Thợ") : (sos.user_name || "Khách");
+    const otherPhone = isOwner ? sos.helper_phone : sos.user_phone;
+
+    let infoBox = `<div style="font-size: 13px; margin-bottom: 8px;">👤 Kết nối với <b>${esc(otherName)}</b> ${otherPhone ? `- SĐT: <b>${esc(otherPhone)}</b>` : ""}</div>`;
+
+    if (sos.status === "WAITING_APPROVAL" && sos.agreed_price && isOwner) {
+        return `<div class="approval-box">${infoBox}<b>⚠️ Thợ đề nghị giá: <span class="price">${price} VNĐ</span></b><div class="approval-actions"><button class="btn green" onclick="respondPrice(${sos.id}, 'ACCEPT', ${sos.agreed_price})">✔ Đồng Ý</button><button class="btn red" onclick="respondPrice(${sos.id}, 'REJECT', ${sos.agreed_price})">✖ Từ Chối</button></div></div>`;
+    }
+    if (sos.status === "NEGOTIATING") {
+        return `<div class="approval-box ok">${infoBox}✅ Đã chốt giá <b>${price} VNĐ</b>.${isOwner ? `<br><button class="btn green small" style="margin-top:6px;" onclick="completeOrder(${sos.id})">Hoàn Thành ✅</button>` : ""}</div>`;
+    }
+    if (sos.status === "COMPLETED") {
+        return `<div class="approval-box done">${infoBox}🏁 Đơn đã hoàn thành.<br><button class="btn grey small" style="margin-top:6px;" onclick="clearActive()">Đóng chat</button></div>`;
+    }
+    return `<div class="approval-box">${infoBox}Trạng thái: <b>${STATUS_TEXT[sos.status]}</b></div>`;
 }
 
-function logout() { sessionStorage.clear(); window.location.replace("/static/login.html"); }
+async function refreshChat() {
+    if (!activeSosId) return;
+    try {
+        const sos = await api(`/api/sos/${activeSosId}`);
+        currentSos = sos;
+        const uid = parseInt(sessionStorage.getItem("user_id"));
+        const isOwner = sos.user_id === uid;
+        const isHelper = sos.helper_id === uid;
+        const isCorrectTab = (currentTab === "victim" && isOwner) || (currentTab === "helper" && isHelper);
+
+        $("chatSection").classList.toggle("hidden", !isCorrectTab || !CHAT_STATUSES.includes(sos.status));
+        $("chatTitle").textContent = `💬 Đơn #${sos.id}`;
+        
+        if (sos.helper_phone && isOwner) {
+            $("callBtn").href = "tel:" + sos.helper_phone;
+            $("callBtn").classList.remove("hidden");
+        } else if (sos.user_phone && isHelper) {
+            $("callBtn").href = "tel:" + sos.user_phone;
+            $("callBtn").classList.remove("hidden");
+        } else {
+            $("callBtn").classList.add("hidden");
+        }
+
+        $("approvalSection").innerHTML = approvalHtml(sos, isOwner, isHelper);
+        
+        const messages = await api(`/api/sos/${sos.id}/messages`);
+        $("chatContainer").innerHTML = messages.map(m => `<div class="msg"><b>${m.sender_id === uid ? 'Bạn' : 'Đối phương'}:</b> ${esc(m.content)}</div>`).join("");
+    } catch (e) { clearActive(); }
+}
+
+async function respondPrice(sosId, action, price) {
+    try {
+        await api(`/api/sos/${sosId}/respond?action=${action}&expected_price=${price}`, { method: "PUT" });
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function completeOrder(sosId) {
+    try {
+        await api(`/api/sos/${sosId}/complete`, { method: "PUT" });
+        alert("Đã hoàn thành đơn!");
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+async function openCancelModal() {
+    const reason = prompt("Nhập lý do hủy đơn cứu hộ:");
+    if (!reason) return;
+    try {
+        await api(`/api/sos/${activeSosId}/cancel`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason })
+        });
+        alert("Đã hủy đơn.");
+        clearActive();
+    } catch (e) { alert(e.message); }
+}
+
+async function openReportModal() {
+    const reason = prompt("Nhập nội dung báo cáo an toàn:");
+    if (!reason) return;
+    try {
+        const res = await api(`/api/sos/${activeSosId}/report`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason })
+        });
+        alert(res.message);
+    } catch (e) { alert(e.message); }
+}
+
+function clearActive() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+    activeSosId = null;
+    sessionStorage.removeItem("active_sos_id");
+    $("chatSection").classList.add("hidden");
+}
+
+async function sendChat() {
+    const content = $("chatInput").value.trim();
+    if (!activeSosId || !content) return;
+    try {
+        await api(`/api/sos/${activeSosId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content })
+        });
+        $("chatInput").value = "";
+        await refreshChat();
+    } catch (e) { alert(e.message); }
+}
+
+function logout() {
+    sessionStorage.clear();
+    window.location.replace("/static/login.html");
+}
+
+window.onload = async function() {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+    loadSettings();
+    $("accName").textContent = sessionStorage.getItem("name") || "Thành viên";
+    $("idLabel").textContent = `SĐT ${sessionStorage.getItem("phone") || ""} - ID: ${sessionStorage.getItem("user_id")}`;
+    
+    radarTimer = setInterval(backgroundRadarPoll, 3000);
+
+    let saved = sessionStorage.getItem("active_sos_id");
+    if (saved) await openChat(saved, true);
+};
 </script>
 </body>
 </html>
