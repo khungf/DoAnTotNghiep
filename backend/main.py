@@ -69,7 +69,6 @@ def require_participant(sos, user_id: int):
         raise HTTPException(status_code=403, detail="Bạn không thuộc đơn cứu hộ này!")
 
 class MessageCreate(BaseModel):
-    sender_id: int
     content: str
 
 @app.get("/api/health")
@@ -77,7 +76,9 @@ def health_check():
     return {"status": "ok", "message": "P2P Rescue Backend is running smoothly!"}
 
 @app.get("/api/users/{user_id}/sos")
-def get_user_sos(user_id: int, db: Session = Depends(get_db)):
+def get_user_sos(user_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if user_id != current.id:
+        raise HTTPException(status_code=403, detail="Bạn chỉ được xem đơn của chính mình!")
     rows = db.query(models.SOSRequest).filter(
         or_(models.SOSRequest.user_id == user_id, models.SOSRequest.helper_id == user_id)
     ).order_by(models.SOSRequest.id.desc()).limit(20).all()
@@ -94,9 +95,9 @@ def get_user_sos(user_id: int, db: Session = Depends(get_db)):
     ]
 
 @app.post("/api/sos")
-def create_sos(user_id: int, issue_type: str, proposed_price: float, latitude: float = None, longitude: float = None, db: Session = Depends(get_db)):
+def create_sos(issue_type: str, proposed_price: float, latitude: float = None, longitude: float = None, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     sos_request = models.SOSRequest(
-        user_id=user_id,
+        user_id=current.id,
         issue_type=issue_type,
         proposed_price=proposed_price,
         latitude=latitude,
@@ -113,14 +114,16 @@ def create_sos(user_id: int, issue_type: str, proposed_price: float, latitude: f
     }
 
 @app.put("/api/sos/{sos_id}/ignore")
-def ignore_sos(sos_id: int, helper_id: int):
+def ignore_sos(sos_id: int, current: models.User = Depends(auth.get_current_user)):
+    helper_id = current.id
     if sos_id not in IGNORED_ORDERS:
         IGNORED_ORDERS[sos_id] = set()
     IGNORED_ORDERS[sos_id].add(helper_id)
     return {"message": "Đã ghi nhận bỏ qua đơn."}
 
 @app.get("/api/helper/incoming-order")
-def get_incoming_order(helper_id: int, lat: float = None, lon: float = None, max_distance: float = 10.0, db: Session = Depends(get_db)):
+def get_incoming_order(lat: float = None, lon: float = None, max_distance: float = 10.0, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    helper_id = current.id
     pending_sos = db.query(models.SOSRequest).filter(models.SOSRequest.status == "PENDING").all()
     if not pending_sos:
         return {"has_order": False}
@@ -160,7 +163,8 @@ def get_incoming_order(helper_id: int, lat: float = None, lon: float = None, max
     }
 
 @app.get("/api/sos/{sos_id}")
-def get_sos(sos_id: int, viewer_id: int = None, db: Session = Depends(get_db)):
+def get_sos(sos_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    viewer_id = current.id
     sos = get_sos_or_404(db, sos_id)
     is_participant = viewer_id is not None and (viewer_id == sos.user_id or viewer_id == sos.helper_id)
     share_info = is_participant and sos.helper_id is not None
@@ -185,7 +189,8 @@ def get_sos(sos_id: int, viewer_id: int = None, db: Session = Depends(get_db)):
     }
 
 @app.put("/api/sos/{sos_id}/negotiate")
-def negotiate_sos(sos_id: int, helper_id: int, final_price: float, db: Session = Depends(get_db)):
+def negotiate_sos(sos_id: int, final_price: float, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    helper_id = current.id
     sos = get_sos_or_404(db, sos_id)
     if final_price <= 0:
         raise HTTPException(status_code=400, detail="Giá đề nghị phải lớn hơn 0!")
@@ -214,7 +219,8 @@ def negotiate_sos(sos_id: int, helper_id: int, final_price: float, db: Session =
     }
 
 @app.put("/api/sos/{sos_id}/respond")
-def respond_sos(sos_id: int, action: str, user_id: int, expected_price: float = None, db: Session = Depends(get_db)):
+def respond_sos(sos_id: int, action: str, expected_price: float = None, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    user_id = current.id
     sos = get_sos_or_404(db, sos_id)
     if sos.user_id != user_id:
         raise HTTPException(status_code=403, detail="Chỉ người cần cứu mới được đồng ý hoặc từ chối giá!")
@@ -244,7 +250,8 @@ def respond_sos(sos_id: int, action: str, user_id: int, expected_price: float = 
     }
 
 @app.put("/api/sos/{sos_id}/release")
-def release_sos(sos_id: int, user_id: int, db: Session = Depends(get_db)):
+def release_sos(sos_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    user_id = current.id
     sos = get_sos_or_404(db, sos_id)
     require_participant(sos, user_id)
     if sos.status not in ("WAITING_APPROVAL", "CHATTING"):
@@ -262,9 +269,9 @@ def release_sos(sos_id: int, user_id: int, db: Session = Depends(get_db)):
     }
 
 @app.post("/api/sos/{sos_id}/messages")
-def send_message(sos_id: int, msg: MessageCreate, db: Session = Depends(get_db)):
+def send_message(sos_id: int, msg: MessageCreate, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     sos = get_sos_or_404(db, sos_id)
-    require_participant(sos, msg.sender_id)
+    require_participant(sos, current.id)
     if sos.status == "COMPLETED":
         raise HTTPException(status_code=400, detail="Đơn đã hoàn thành, khung chat đã đóng!")
     if sos.status not in CHAT_STATUSES:
@@ -273,7 +280,7 @@ def send_message(sos_id: int, msg: MessageCreate, db: Session = Depends(get_db))
     if not content:
         raise HTTPException(status_code=400, detail="Tin nhắn trống!")
 
-    new_msg = models.Message(sos_id=sos_id, sender_id=msg.sender_id, content=content)
+    new_msg = models.Message(sos_id=sos_id, sender_id=current.id, content=content)
     db.add(new_msg)
     db.commit()
     db.refresh(new_msg)
@@ -285,13 +292,15 @@ def send_message(sos_id: int, msg: MessageCreate, db: Session = Depends(get_db))
     }
 
 @app.get("/api/sos/{sos_id}/messages")
-def get_messages(sos_id: int, viewer_id: int, db: Session = Depends(get_db)):
+def get_messages(sos_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    viewer_id = current.id
     sos = get_sos_or_404(db, sos_id)
     require_participant(sos, viewer_id)
     return db.query(models.Message).filter(models.Message.sos_id == sos_id).order_by(models.Message.timestamp.asc(), models.Message.id.asc()).all()
 
 @app.put("/api/sos/{sos_id}/complete")
-def complete_sos(sos_id: int, user_id: int, db: Session = Depends(get_db)):
+def complete_sos(sos_id: int, current: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    user_id = current.id
     sos = get_sos_or_404(db, sos_id)
     require_participant(sos, user_id)
     if sos.status != "NEGOTIATING":

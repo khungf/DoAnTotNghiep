@@ -452,9 +452,15 @@ function resetHtml(el) {
 }
 
 async function api(path, options) {
-    const res = await fetch(API + path, options);
+    const opts = Object.assign({}, options);
+    opts.headers = Object.assign({ "Authorization": "Bearer " + (sessionStorage.getItem("token") || "") }, opts.headers);
+    const res = await fetch(API + path, opts);
     let body = null;
     try { body = await res.json(); } catch (e) {}
+    if (res.status === 401) {
+        logout();
+        throw new Error("Phiên đăng nhập đã hết hạn, hãy đăng nhập lại!");
+    }
     if (!res.ok) {
         const detail = body && typeof body.detail === "string" ? body.detail : "Lỗi " + res.status;
         throw new Error(detail);
@@ -554,7 +560,7 @@ async function sendSOS() {
     const btn = $("sosBtn");
     btn.disabled = true;
     const pos = await getPosition();
-    let url = `/api/sos?user_id=${uid}&issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
+    let url = `/api/sos?issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
     if (pos) url += `&latitude=${pos.lat}&longitude=${pos.lon}`;
     try {
         const data = await api(url, { method: "POST" });
@@ -577,7 +583,7 @@ async function backgroundRadarPoll() {
 
     const maxDist = parseFloat($("maxDistSelect").value) || 10.0;
     const pos = await getPosition();
-    let url = `/api/helper/incoming-order?helper_id=${uid}&max_distance=${maxDist}`;
+    let url = `/api/helper/incoming-order?max_distance=${maxDist}`;
     if (pos) url += `&lat=${pos.lat}&lon=${pos.lon}`;
 
     try {
@@ -604,7 +610,7 @@ async function ignoreOrder() {
     $("orderModal").classList.add("hidden");
     if (sosId && uid) {
         try {
-            await api(`/api/sos/${sosId}/ignore?helper_id=${uid}`, { method: "PUT" });
+            await api(`/api/sos/${sosId}/ignore`, { method: "PUT" });
         } catch (e) {}
     }
     currentIncomingSosId = null;
@@ -622,7 +628,7 @@ async function acceptDispatchedOrder() {
     if (!price || price <= 0) { alert("Giá không hợp lệ!"); currentIncomingSosId = null; return; }
 
     try {
-        await api(`/api/sos/${sosId}/negotiate?helper_id=${uid}&final_price=${price}`, { method: "PUT" });
+        await api(`/api/sos/${sosId}/negotiate?final_price=${price}`, { method: "PUT" });
         clearActive();
         switchTab('helper');
         await openChat(sosId, false);
@@ -772,7 +778,7 @@ async function refreshChat() {
     const uid = parseInt(sessionStorage.getItem("user_id"));
     const sosId = activeSosId;
     try {
-        const sos = await api(`/api/sos/${sosId}?viewer_id=${uid}`);
+        const sos = await api(`/api/sos/${sosId}`);
         if (sosId !== activeSosId) return;
         currentSos = sos;
         const isOwner = sos.user_id === uid;
@@ -806,7 +812,7 @@ async function refreshChat() {
         }
         if (chatShownFor !== sos.id) { chatShownFor = sos.id; needScroll = true; }
 
-        const messages = await api(`/api/sos/${sos.id}/messages?viewer_id=${uid}`);
+        const messages = await api(`/api/sos/${sos.id}/messages`);
         if (sosId !== activeSosId) return;
         renderMessages(messages, sos);
         if (needScroll) goToChat();
@@ -824,7 +830,7 @@ async function refreshChat() {
 async function respondPrice(sosId, action, price) {
     const uid = parseInt(sessionStorage.getItem("user_id"));
     try {
-        await api(`/api/sos/${sosId}/respond?action=${action}&user_id=${uid}&expected_price=${price}`, { method: "PUT" });
+        await api(`/api/sos/${sosId}/respond?action=${action}&expected_price=${price}`, { method: "PUT" });
         lastPromptKey = null;
         await refreshChat();
     } catch (e) {
@@ -840,7 +846,7 @@ async function sendReoffer() {
     const price = parseFloat(input.value);
     if (!price || price <= 0) { alert("Hãy nhập giá mới hợp lệ!"); return; }
     try {
-        await api(`/api/sos/${activeSosId}/negotiate?helper_id=${uid}&final_price=${price}`, { method: "PUT" });
+        await api(`/api/sos/${activeSosId}/negotiate?final_price=${price}`, { method: "PUT" });
         await refreshChat();
     } catch (e) {
         alert(e.message);
@@ -856,7 +862,7 @@ async function releaseOrder() {
     const ask = isOwner ? "Hủy thợ này và đưa đơn về danh sách chờ thợ khác?" : "Rời khỏi đơn này?";
     if (!confirm(ask)) return;
     try {
-        await api(`/api/sos/${id}/release?user_id=${uid}`, { method: "PUT" });
+        await api(`/api/sos/${id}/release`, { method: "PUT" });
         if (isOwner) {
             lastPromptKey = null;
             chatShownFor = null;
@@ -879,7 +885,7 @@ async function sendChat() {
         await api(`/api/sos/${activeSosId}/messages`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sender_id: uid, content })
+            body: JSON.stringify({ content })
         });
         $("chatInput").value = "";
         await refreshChat();
@@ -894,7 +900,7 @@ async function completeOrderQuick(sosId) {
     const uid = parseInt(sessionStorage.getItem("user_id"));
     if (!uid) return;
     try {
-        await api(`/api/sos/${sosId}/complete?user_id=${uid}`, { method: "PUT" });
+        await api(`/api/sos/${sosId}/complete`, { method: "PUT" });
         alert("Đơn #" + sosId + " đã hoàn thành!");
         await refreshChat();
     } catch (e) {
