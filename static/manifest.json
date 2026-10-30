@@ -1,0 +1,16 @@
+{
+  "short_name": "DoAnSOS",
+  "name": "Ứng dụng Hỗ trợ Khẩn cấp SOS",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#dc2626",
+  "display": "standalone",
+  "orientation": "portrait"
+}
