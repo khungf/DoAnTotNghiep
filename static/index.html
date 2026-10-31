@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 * { box-sizing: border-box; }
-body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f9; color: #1f2937; display: flex; justify-content: center; }
+body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f9; color: #1f2937; display: flex; justify-content: center; overflow-x: hidden; }
 .app { width: 100%; max-width: 480px; min-height: 100vh; background: #f8f9fc; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; padding-bottom: 70px; }
 
 .header-driver { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; }
@@ -83,30 +83,19 @@ input:checked + .slider:before { transform: translateX(26px); }
 .sidebar-item-left i { width: 20px; color: #6b7280; text-align: center; }
 .sidebar-item:hover .sidebar-item-left i { color: #ea580c; }
 
-/* MODAL CÀI ĐẶT */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-.modal-content { background: #fff; width: 92%; max-width: 450px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 85vh; display: flex; flex-direction: column; }
-.settings-tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 14px; overflow-x: auto; }
-.s-tab { flex: 1; padding: 10px 8px; background: none; border: none; font-size: 12px; font-weight: bold; color: #6b7280; cursor: pointer; text-align: center; white-space: nowrap; }
-.s-tab.active { color: #ea580c; border-bottom: 2px solid #ea580c; margin-bottom: -2px; }
-.s-pane { display: none; overflow-y: auto; max-height: 280px; }
-.s-pane.active { display: block; }
-.history-item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+/* HIỆU ỨNG TRƯỢT MƯỢT MÀ (SLIDE TRANSITION) CHO FULL-SCREEN VIEW */
+.fullscreen-view { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; height: 100vh; background: #f8f9fc; z-index: 9999; display: flex; flex-direction: column; overflow-y: auto; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease; transform-origin: right; }
+.fullscreen-view.hidden { transform: translateX(50%); opacity: 0; pointer-events: none; }
+.fullscreen-header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 14px 16px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 10; }
+.fullscreen-header h2 { margin: 0; font-size: 18px; color: #111827; }
+.back-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #374151; padding: 4px 8px; }
+.settings-section-title { font-size: 13px; font-weight: bold; color: #6b7280; padding: 12px 16px 6px; text-transform: uppercase; background: #f1f4f9; }
+.settings-menu-item { display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 14px 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; font-size: 15px; color: #1f2937; }
+.settings-menu-item:hover { background: #fafafa; }
 
 .footer { text-align: center; padding: 10px; background: #e5e7eb; font-size: 12px; color: #374151; margin-bottom: 10px; }
 .note { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 8px 10px; border-radius: 10px; font-size: 13px; margin-bottom: 8px; }
 .note:empty { display: none; }
-.review-box { border-top: 1px dashed #d1d5db; padding-top: 8px; margin-bottom: 8px; }
-.hidden { display: none !important; }
-.nav-panel { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
-.nav-next { font-size: 15px; font-weight: bold; color: #1e3a8a; margin-bottom: 4px; }
-.nav-meta { font-size: 13px; color: #374151; margin-bottom: 8px; }
-.nav-actions { display: flex; gap: 8px; }
-.nav-actions a, .nav-actions button { flex: 1; text-align: center; text-decoration: none; }
-.pay-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 10px; margin-bottom: 10px; font-size: 14px; }
-.pay-box.paid { background: #ecfdf5; }
-.pay-box img { display: block; width: 100%; max-width: 260px; margin: 8px auto; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; }
-.pay-box .ok { color: #15803d; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -155,7 +144,7 @@ input:checked + .slider:before { transform: translateX(26px); }
                 </div>
                 <h2 style="font-size: 18px; font-weight: bold; color: #1f2937; margin: 0 0 6px 0;">Tạm nghỉ</h2>
                 <p style="font-size: 13px; color: #6b7280; max-width: 260px; margin: 0 0 20px 0;">Thay đổi trạng thái làm việc để nhận đơn hàng mới.</p>
-                <button class="btn" style="background: #fff; color: #374151; border: 1px solid #d1d5db; width: auto; padding: 10px 20px; font-size: 13px;" onclick="openSettingsModal()">Cài đặt chung</button>
+                <button class="btn" style="background: #fff; color: #374151; border: 1px solid #d1d5db; width: auto; padding: 10px 20px; font-size: 13px;" onclick="openSettingsFullscreen()">Cài đặt</button>
             </div>
 
             <!-- Card tạo sự cố SOS -->
@@ -182,15 +171,6 @@ input:checked + .slider:before { transform: translateX(26px); }
             <div class="card" style="text-align: center;">
                 <h3>📡 Radar quét đơn cứu hộ</h3>
                 <div id="radarStatusText" style="color: #dc2626; font-weight: bold;">🔴 Đang ngưng hoạt động</div>
-            </div>
-        </div>
-
-        <!-- TAB 3: TRẠM XĂNG & VÁ VỎ (HIỂN THỊ KHI CHỌN TỪ MENU) -->
-        <div id="servicesPanel" class="hidden">
-            <div class="card">
-                <h3>🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn</h3>
-                <button class="btn blue small" onclick="loadNearbyServices()" style="margin-bottom:10px;">Quét địa điểm gần nhất 🔍</button>
-                <div id="servicesList"><div class="empty">Bấm nút trên để quét tìm địa điểm quanh vị trí của bạn.</div></div>
             </div>
         </div>
 
@@ -225,7 +205,7 @@ input:checked + .slider:before { transform: translateX(26px); }
         </div>
     </div>
 
-    <!-- THANH NÚT HÀNH ĐỘNG DƯỚI CÙNG (TỰ ĐỘNG ẨN KHI BẬT HOẠT ĐỘNG) -->
+    <!-- THANH NÚT HÀNH ĐỘNG DƯỚI CÙNG -->
     <div class="ready-action-bar" id="bottomReadyBar">
         <div class="ready-btn-wrapper">
             <div class="ready-btn-arrow">
@@ -234,6 +214,138 @@ input:checked + .slider:before { transform: translateX(26px); }
             <div class="ready-btn-text" id="btnToggleActive" onclick="toggleWorkFromBottom()">
                 Sẵn sàng hoạt động
             </div>
+        </div>
+    </div>
+
+    <!-- FULL-SCREEN: TRẠM XĂNG & VÁ VỎ (CÓ HIỆU ỨNG TRƯỢT) -->
+    <div id="servicesFullscreen" class="fullscreen-view hidden">
+        <div class="fullscreen-header">
+            <button class="back-btn" onclick="closeFullscreenService()"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2>Trạm Xăng & Vá Vỏ</h2>
+        </div>
+        <div style="padding: 16px; flex: 1; overflow-y: auto;">
+            <div class="card">
+                <h3>🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn</h3>
+                <button class="btn blue small" onclick="loadNearbyServices()" style="margin-bottom:10px;">Quét địa điểm gần nhất 🔍</button>
+                <div id="servicesList"><div class="empty">Bấm nút trên để quét tìm địa điểm quanh vị trí của bạn.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL-SCREEN: CÀI ĐẶT (CÓ HIỆU ỨNG TRƯỢT) -->
+    <div id="settingsFullscreen" class="fullscreen-view hidden">
+        <div class="fullscreen-header">
+            <button class="back-btn" onclick="closeSettingsFullscreen()"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2>Cài đặt</h2>
+        </div>
+        <div style="flex: 1; overflow-y: auto; background: #f1f4f9;">
+            <div class="settings-section-title">Tài khoản của tôi</div>
+            <div class="settings-menu-item" onclick="openSettingsSubTab('verify')">
+                <span>Hồ sơ của tôi</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+            <div class="settings-menu-item" onclick="openSettingsSubTab('account')">
+                <span>Tài khoản của tôi</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+
+            <div class="settings-section-title">Cài đặt</div>
+            <div class="settings-menu-item" onclick="openSettingsSubTab('config')">
+                <span>Phương thức nhận đơn</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+            <div class="settings-menu-item" onclick="openSettingsSubTab('config')">
+                <span>Cập nhật vị trí của tôi</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+            <div class="settings-menu-item" onclick="openSettingsSubTab('config')">
+                <span>Cài đặt thông báo</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+            <div class="settings-menu-item" onclick="alert('Tính năng đang phát triển')">
+                <span>Thay đổi cỡ chữ</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+            <div class="settings-menu-item" onclick="alert('Tính năng đang phát triển')">
+                <span>Thay đổi ngôn ngữ</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+
+            <div class="settings-section-title">Hỗ trợ</div>
+            <div class="settings-menu-item" onclick="openSettingsSubTab('config')">
+                <span>Thông tin chung</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+            <div class="settings-menu-item" onclick="openSettingsSubTab('config')">
+                <span>Điều khoản và điều kiện</span>
+                <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CHI TIẾT CÀI ĐẶT -->
+    <div class="modal-overlay hidden" id="settingsModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:10000;">
+        <div class="modal-content" style="background:#fff; width:92%; max-width:450px; border-radius:16px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.3); max-height:85vh; display:flex; flex-direction:column;">
+            <div class="modal-title" style="color:#ea580c; font-size:18px; text-align:center; font-weight:bold; margin-bottom:15px;">⚙️ Chi Tiết Cài Đặt</div>
+            <div class="settings-tabs" style="display:flex; border-bottom:2px solid #e5e7eb; margin-bottom:14px; overflow-x:auto;">
+                <button class="s-tab active" onclick="switchSettingsTab('config', this)">Cài Đặt</button>
+                <button class="s-tab" onclick="switchSettingsTab('account', this)">Tài Khoản</button>
+                <button class="s-tab" onclick="switchSettingsTab('verify', this)">Xác Minh Thợ</button>
+                <button class="s-tab" onclick="switchSettingsTab('bank', this)">Nhận Tiền</button>
+                <button class="s-tab" onclick="switchSettingsTab('rescueHistory', this)">Lịch Sử Cứu Hộ</button>
+                <button class="s-tab" onclick="switchSettingsTab('issueHistory', this)">Lịch Sử Sự Cố</button>
+            </div>
+            <div class="s-pane active" id="paneConfig" style="max-height:280px; overflow-y:auto;">
+                <label style="font-size:13px; font-weight:bold;">Tự động nhận đơn</label>
+                <select id="autoDispatchSelect" onchange="saveSettings()"><option value="ON">Bật 🟢</option><option value="OFF">Tắt 🔴</option></select>
+                <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Bán kính nhận đơn</label>
+                <select id="maxDistSelect" onchange="saveSettings()"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option></select>
+                <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Thông báo đẩy</label>
+                <div class="note" id="pushMsg">Nhận thông báo đơn mới và tin nhắn ngay cả khi đã đóng app.</div>
+                <button class="btn blue small" id="pushBtn" onclick="enablePush()">🔔 Bật thông báo đẩy</button>
+            </div>
+            <div class="s-pane" id="paneAccount" style="max-height:280px; overflow-y:auto; display:none;">
+                <div style="font-size:13px; margin-bottom:10px;">Số điện thoại: <b id="accPhone"></b></div>
+                <div id="emailLinked" class="hidden">
+                    <div style="font-size:13px; margin-bottom:8px;">Email nhận thông báo: <b id="emailCurrent"></b></div>
+                    <button class="btn grey small" onclick="unlinkEmail()">Gỡ email</button>
+                </div>
+                <div id="emailForm">
+                    <label style="font-size:13px; font-weight:bold;">Liên kết email</label>
+                    <input type="email" id="emailInput" placeholder="ten@email.com">
+                    <button class="btn blue small" onclick="sendEmailCode()">Gửi mã xác nhận</button>
+                    <div id="emailCodeRow" class="hidden" style="margin-top:8px;">
+                        <input type="text" id="emailCodeInput" inputmode="numeric" maxlength="6" placeholder="Mã 6 số">
+                        <button class="btn green small" onclick="verifyEmailCode()">Xác nhận</button>
+                    </div>
+                </div>
+                <div class="note" id="accMsg" style="margin-top:10px;"></div>
+            </div>
+            <div class="s-pane" id="paneVerify" style="max-height:280px; overflow-y:auto; display:none;">
+                <div class="note" id="verifyStatus"></div>
+                <div id="verifyForm">
+                    <label style="font-size:13px; font-weight:bold;">Thông tin xe (loại xe, biển số)</label>
+                    <input type="text" id="vehicleInfo" placeholder="Ví dụ: Wave Alpha - 59X1-12345">
+                    <label style="font-size:13px; font-weight:bold;">Ảnh xe</label>
+                    <input type="file" id="vehiclePhotoFile" accept="image/*">
+                    <label style="font-size:13px; font-weight:bold;">Ảnh bằng lái (không bắt buộc)</label>
+                    <input type="file" id="certPhotoFile" accept="image/*">
+                    <button class="btn blue small" id="verifySubmitBtn" onclick="submitVerification()">Gửi hồ sơ</button>
+                </div>
+            </div>
+            <div class="s-pane" id="paneBank" style="max-height:280px; overflow-y:auto; display:none;">
+                <label style="font-size:13px; font-weight:bold;">Ngân hàng</label>
+                <select id="bankCode"><option value="">-- Chọn ngân hàng --</option></select>
+                <label style="font-size:13px; font-weight:bold;">Số tài khoản</label>
+                <input type="text" id="bankAccount" placeholder="Số tài khoản">
+                <label style="font-size:13px; font-weight:bold;">Chủ tài khoản</label>
+                <input type="text" id="bankHolder" placeholder="NGUYEN VAN A">
+                <button class="btn blue small" onclick="saveBank()">Lưu tài khoản</button>
+                <div class="note" id="bankMsg" style="margin-top:10px;"></div>
+            </div>
+            <div class="s-pane" id="paneRescueHistory" style="max-height:280px; overflow-y:auto; display:none;"><div id="rescueHistoryList"><div class="empty">Trống</div></div></div>
+            <div class="s-pane" id="paneIssueHistory" style="max-height:280px; overflow-y:auto; display:none;"><div id="issueHistoryList"><div class="empty">Trống</div></div></div>
+            <button class="btn blue" onclick="closeSettingsModal()" style="width:100%; margin-top:15px; background: #ea580c;">Đóng</button>
         </div>
     </div>
 
@@ -259,68 +371,52 @@ input:checked + .slider:before { transform: translateX(26px); }
                         <span class="slider"></span>
                     </label>
                 </div>
-                <!-- Đưa trạm xăng / vá vỏ vào menu 3 gạch -->
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); switchTab('services');">
+                <a class="sidebar-item" onclick="closeSidebarDrawer(); openFullscreenService();">
                     <div class="sidebar-item-left">
                         <i class="fa-solid fa-gas-pump"></i>
                         <span>Trạm xăng / Vá vỏ</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('config', document.querySelector('.s-tab'));">
+                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsFullscreen();">
+                    <div class="sidebar-item-left">
+                        <i class="fa-solid fa-gear"></i>
+                        <span>Cài đặt</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                </a>
+                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsFullscreen(); openSettingsSubTab('config');">
                     <div class="sidebar-item-left">
                         <i class="fa-solid fa-bell"></i>
                         <span>Thông báo</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('rescueHistory', document.querySelectorAll('.s-tab')[4]);">
+                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsFullscreen(); openSettingsSubTab('rescueHistory');">
                     <div class="sidebar-item-left">
                         <i class="fa-solid fa-chart-line"></i>
                         <span>Thu nhập</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('bank', document.querySelectorAll('.s-tab')[3]);">
+                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsFullscreen(); openSettingsSubTab('bank');">
                     <div class="sidebar-item-left">
                         <i class="fa-solid fa-wallet"></i>
                         <span>Ví</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('verify', document.querySelectorAll('.s-tab')[2]);">
+                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsFullscreen(); openSettingsSubTab('verify');">
                     <div class="sidebar-item-left">
                         <i class="fa-solid fa-medal"></i>
                         <span>Cấp độ</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('rescueHistory', document.querySelectorAll('.s-tab')[4]);">
-                    <div class="sidebar-item-left">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>Điểm vi phạm</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
-                </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('rescueHistory', document.querySelectorAll('.s-tab')[4]);">
+                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsFullscreen(); openSettingsSubTab('rescueHistory');">
                     <div class="sidebar-item-left">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                         <span>Lịch sử đơn hàng</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
-                </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('config', document.querySelector('.s-tab'));">
-                    <div class="sidebar-item-left">
-                        <i class="fa-solid fa-circle-question"></i>
-                        <span>Trung tâm Trợ giúp</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
-                </a>
-                <!-- Tích hợp cài đặt chung -->
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('config', document.querySelector('.s-tab'));">
-                    <div class="sidebar-item-left">
-                        <i class="fa-solid fa-gear"></i>
-                        <span>Cài đặt chung</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
@@ -334,76 +430,9 @@ input:checked + .slider:before { transform: translateX(26px); }
         </div>
     </div>
 
-    <!-- MODAL CÀI ĐẶT -->
-    <div class="modal-overlay hidden" id="settingsModal">
-        <div class="modal-content">
-            <div class="modal-title" style="color:#ea580c; font-size:18px; text-align:center; font-weight:bold; margin-bottom:15px;">⚙️ Cài Đặt & Lịch Sử</div>
-            <div class="settings-tabs">
-                <button class="s-tab active" onclick="switchSettingsTab('config', this)">Cài Đặt</button>
-                <button class="s-tab" onclick="switchSettingsTab('account', this)">Tài Khoản</button>
-                <button class="s-tab" onclick="switchSettingsTab('verify', this)">Xác Minh Thợ</button>
-                <button class="s-tab" onclick="switchSettingsTab('bank', this)">Nhận Tiền</button>
-                <button class="s-tab" onclick="switchSettingsTab('rescueHistory', this)">Lịch Sử Cứu Hộ</button>
-                <button class="s-tab" onclick="switchSettingsTab('issueHistory', this)">Lịch Sử Sự Cố</button>
-            </div>
-            <div class="s-pane active" id="paneConfig">
-                <label style="font-size:13px; font-weight:bold;">Tự động nhận đơn</label>
-                <select id="autoDispatchSelect" onchange="saveSettings()"><option value="ON">Bật 🟢</option><option value="OFF">Tắt 🔴</option></select>
-                <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Bán kính nhận đơn</label>
-                <select id="maxDistSelect" onchange="saveSettings()"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option></select>
-                <label style="font-size:13px; font-weight:bold; margin-top:10px; display:block;">Thông báo đẩy</label>
-                <div class="note" id="pushMsg">Nhận thông báo đơn mới và tin nhắn ngay cả khi đã đóng app. Trên iPhone, hãy thêm app vào Màn hình chính trước.</div>
-                <button class="btn blue small" id="pushBtn" onclick="enablePush()">🔔 Bật thông báo đẩy</button>
-            </div>
-            <div class="s-pane" id="paneAccount">
-                <div style="font-size:13px; margin-bottom:10px;">Số điện thoại: <b id="accPhone"></b></div>
-                <div id="emailLinked" class="hidden">
-                    <div style="font-size:13px; margin-bottom:8px;">Email nhận thông báo: <b id="emailCurrent"></b></div>
-                    <button class="btn grey small" onclick="unlinkEmail()">Gỡ email</button>
-                </div>
-                <div id="emailForm">
-                    <label style="font-size:13px; font-weight:bold;">Liên kết email để nhận thông báo đơn</label>
-                    <input type="email" id="emailInput" placeholder="ten@email.com" autocomplete="email">
-                    <button class="btn blue small" id="emailSendBtn" onclick="sendEmailCode()">Gửi mã xác nhận</button>
-                    <div id="emailCodeRow" class="hidden" style="margin-top:8px;">
-                        <input type="text" id="emailCodeInput" inputmode="numeric" maxlength="6" placeholder="Nhập mã 6 số">
-                        <button class="btn green small" onclick="verifyEmailCode()">Xác nhận email</button>
-                    </div>
-                </div>
-                <div class="note" id="accMsg" style="margin-top:10px;"></div>
-            </div>
-            <div class="s-pane" id="paneVerify">
-                <div class="note" id="verifyStatus"></div>
-                <div id="verifyForm">
-                    <label style="font-size:13px; font-weight:bold;">Thông tin xe (loại xe, biển số)</label>
-                    <input type="text" id="vehicleInfo" maxlength="120" placeholder="Ví dụ: Wave Alpha - 59X1-12345">
-                    <label style="font-size:13px; font-weight:bold;">Ảnh xe</label>
-                    <input type="file" id="vehiclePhotoFile" accept="image/*">
-                    <label style="font-size:13px; font-weight:bold;">Ảnh bằng lái hoặc chứng chỉ (không bắt buộc)</label>
-                    <input type="file" id="certPhotoFile" accept="image/*">
-                    <button class="btn blue small" id="verifySubmitBtn" onclick="submitVerification()">Gửi hồ sơ</button>
-                </div>
-            </div>
-            <div class="s-pane" id="paneBank">
-                <div class="note">Tài khoản này chỉ hiện cho khách khi họ chọn thanh toán chuyển khoản (kèm mã QR).</div>
-                <label style="font-size:13px; font-weight:bold;">Ngân hàng</label>
-                <select id="bankCode"><option value="">-- Chọn ngân hàng --</option></select>
-                <label style="font-size:13px; font-weight:bold;">Số tài khoản</label>
-                <input type="text" id="bankAccount" inputmode="numeric" maxlength="20" placeholder="Ví dụ: 0123456789">
-                <label style="font-size:13px; font-weight:bold;">Tên chủ tài khoản</label>
-                <input type="text" id="bankHolder" maxlength="60" placeholder="NGUYEN VAN A">
-                <button class="btn blue small" onclick="saveBank()">Lưu tài khoản</button>
-                <div class="note" id="bankMsg" style="margin-top:10px;"></div>
-            </div>
-            <div class="s-pane" id="paneRescueHistory"><div id="rescueHistoryList"><div class="empty">Đang tải...</div></div></div>
-            <div class="s-pane" id="paneIssueHistory"><div id="issueHistoryList"><div class="empty">Đang tải...</div></div></div>
-            <button class="btn blue" onclick="closeSettingsModal()" style="width:100%; margin-top:15px; background: #ea580c;">Đóng</button>
-        </div>
-    </div>
-
     <!-- POPUP NỔ ĐƠN -->
-    <div class="modal-overlay hidden" id="orderModal">
-        <div class="modal-content" style="text-align: center;">
+    <div class="modal-overlay hidden" id="orderModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:10000;">
+        <div class="modal-content" style="background:#fff; width:92%; max-width:450px; border-radius:16px; padding:20px; text-align:center;">
             <h3 style="color: #dc2626;">🔔 NỔ ĐƠN CỨU HỘ MỚI!</h3>
             <div id="modalBody" style="font-size: 15px; margin: 10px 0;"></div>
             <div style="display: flex; gap: 10px;">
@@ -423,10 +452,8 @@ let currentTab = "victim";
 let pollTimer = null, radarTimer = null, trackingInterval = null, trackingSosId = null, helperLocationSender = null;
 let activeSosId = null, currentIncomingSosId = null, currentSos = null, radarBusy = false;
 let mapInstance = null, markerInstance = null;
-let navTimer = null, navSosId = null, navBusy = false, navFitted = false;
 let ws = null, wsConnected = false, wsRetry = 0, wsPingTimer = null, wsClosedByUs = false, lastHelperPush = 0;
 let pollTick = 0, radarTick = 0;
-let navLine = null, navVictimMarker = null, navHelperMarker = null;
 
 if (!sessionStorage.getItem("user_id")) { window.location.replace("/static/login.html"); }
 const $ = id => document.getElementById(id);
@@ -458,12 +485,29 @@ function switchTab(tab) {
     currentTab = tab;
     $("victimPanel").classList.toggle("hidden", tab !== "victim");
     $("helperPanel").classList.toggle("hidden", tab !== "helper");
-    $("servicesPanel").classList.toggle("hidden", tab !== "services");
 
     $("tabVictim").classList.toggle("active", tab === "victim");
     $("tabHelper").classList.toggle("active", tab === "helper");
 
     if (activeSosId) refreshChat();
+}
+
+function openSettingsFullscreen() { $("settingsFullscreen").classList.remove("hidden"); loadHistory(); }
+function closeSettingsFullscreen() { $("settingsFullscreen").classList.add("hidden"); }
+
+function openFullscreenService() {
+    $("servicesFullscreen").classList.remove("hidden");
+}
+function closeFullscreenService() {
+    $("servicesFullscreen").classList.add("hidden");
+}
+
+function openSettingsSubTab(tabName) {
+    openSettingsModal();
+    const map = { config: 0, account: 1, verify: 2, bank: 3, rescueHistory: 4, issueHistory: 5 };
+    const idx = map[tabName] || 0;
+    const btns = document.querySelectorAll(".s-tab");
+    if (btns[idx]) switchSettingsTab(tabName, btns[idx]);
 }
 
 function openSettingsModal() { $("settingsModal").classList.remove("hidden"); loadHistory(); }
@@ -480,11 +524,11 @@ function closeSidebarDrawer() {
 
 function switchSettingsTab(tabName, btn) {
     document.querySelectorAll(".s-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".s-pane").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".s-pane").forEach(p => p.style.display = "none");
     const panes = { config: "paneConfig", account: "paneAccount", verify: "paneVerify", rescueHistory: "paneRescueHistory", issueHistory: "paneIssueHistory", bank: "paneBank" };
     if (!panes[tabName]) return;
     if (btn) btn.classList.add("active");
-    $(panes[tabName]).classList.add("active");
+    $(panes[tabName]).style.display = "block";
     if (tabName === "account") loadAccount();
     if (tabName === "verify") loadVerification();
     if (tabName === "bank") loadBank();
@@ -505,7 +549,7 @@ async function loadHistory() {
     const uid = parseInt(sessionStorage.getItem("user_id"));
     try {
         const list = await api(`/api/users/${uid}/sos`);
-        const row = s => `<div class="history-item"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${esc(s.status)}</b></div>`;
+        const row = s => `<div class="history-item" style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f3f4f6; font-size:13px;"><div><b>#${s.id}</b> - ${esc(s.issue_type)}<br><span class="muted">${money(s.agreed_price || s.proposed_price)} VNĐ</span></div><b>${esc(s.status)}</b></div>`;
         $("rescueHistoryList").innerHTML = list.filter(s => s.role === "Thợ").map(row).join("") || '<div class="empty">Trống</div>';
         $("issueHistoryList").innerHTML = list.filter(s => s.role === "Khách").map(row).join("") || '<div class="empty">Trống</div>';
     } catch (e) {}
@@ -561,7 +605,6 @@ function updateHelperStatusUI() {
     $("restStateBox").classList.toggle("hidden", isWorking);
     $("victimActiveCard").classList.toggle("hidden", !isWorking);
 
-    // Ẩn/hiện thanh dưới cùng khi bật/tắt hoạt động
     $("bottomReadyBar").classList.toggle("hidden", isWorking);
 
     if (isWorking) {
@@ -597,159 +640,6 @@ function startSendingHelperLocation() {
     }, 5000);
 }
 
-function stopTracking() {
-    if (trackingInterval) clearInterval(trackingInterval);
-    trackingInterval = null;
-    trackingSosId = null;
-}
-
-function startTrackingHelperOnMap(sosId) {
-    if (trackingInterval && trackingSosId === sosId) return;
-    stopTracking();
-    trackingSosId = sosId;
-    $("mapContainer").classList.remove("hidden");
-    const tick = async () => {
-        if (wsConnected && Date.now() - lastHelperPush < 15000) return;
-        try {
-            const data = await api(`/api/sos/${sosId}/helper-location`);
-            if (data.latitude && data.longitude) {
-                if (!mapInstance) {
-                    mapInstance = L.map('map').setView([data.latitude, data.longitude], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
-                    markerInstance = L.marker([data.latitude, data.longitude]).addTo(mapInstance).bindPopup("Thợ đang tới!").openPopup();
-                    setTimeout(() => mapInstance && mapInstance.invalidateSize(), 200);
-                } else {
-                    markerInstance.setLatLng([data.latitude, data.longitude]);
-                    mapInstance.setView([data.latitude, data.longitude]);
-                }
-            }
-        } catch (e) {}
-    };
-    tick();
-    trackingInterval = setInterval(tick, 4000);
-}
-
-function ensureMap(lat, lon) {
-    if (!mapInstance) {
-        mapInstance = L.map('map').setView([lat, lon], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(mapInstance);
-        setTimeout(() => mapInstance && mapInstance.invalidateSize(), 200);
-    }
-    return mapInstance;
-}
-
-function fmtDist(m) {
-    return m >= 1000 ? (m / 1000).toFixed(1) + " km" : (Math.max(10, Math.round(m / 10) * 10)) + " m";
-}
-
-function stopNavigation() {
-    if (!navSosId) return;
-    if (navTimer) clearInterval(navTimer);
-    navTimer = null;
-    navSosId = null;
-    navBusy = false;
-    navFitted = false;
-    if (mapInstance) {
-        [navLine, navVictimMarker, navHelperMarker].forEach(layer => { if (layer) mapInstance.removeLayer(layer); });
-    }
-    navLine = navVictimMarker = navHelperMarker = null;
-    $("navPanel").classList.add("hidden");
-    $("map").classList.remove("hidden");
-    $("map").style.height = "160px";
-    $("mapContainer").classList.add("hidden");
-}
-
-function startHelperNavigation(sos) {
-    if (navSosId === sos.id) return;
-    stopNavigation();
-    navSosId = sos.id;
-    $("mapContainer").classList.remove("hidden");
-    $("navPanel").classList.remove("hidden");
-
-    const hasLocation = sos.latitude != null && sos.longitude != null;
-    $("map").classList.toggle("hidden", !hasLocation);
-    $("navFitBtn").classList.toggle("hidden", !hasLocation);
-    if (!hasLocation) {
-        $("navNext").textContent = "Khách không chia sẻ vị trí, hãy hỏi địa chỉ trong khung chat.";
-        $("navMeta").textContent = "";
-        $("navGoogleBtn").classList.add("hidden");
-        return;
-    }
-
-    $("navGoogleBtn").classList.remove("hidden");
-    $("navGoogleBtn").href = `https://www.google.com/maps/dir/?api=1&destination=${sos.latitude},${sos.longitude}&travelmode=driving`;
-    $("navNext").textContent = "Đang tìm đường...";
-    $("navMeta").textContent = "";
-    $("map").style.height = "220px";
-
-    const map = ensureMap(sos.latitude, sos.longitude);
-    navVictimMarker = L.marker([sos.latitude, sos.longitude]).addTo(map).bindPopup("Vị trí khách cần cứu hộ");
-    map.invalidateSize();
-    map.setView([sos.latitude, sos.longitude], 15);
-
-    navTick();
-    navTimer = setInterval(navTick, 10000);
-}
-
-async function navTick() {
-    if (navBusy || !navSosId) return;
-    navBusy = true;
-    const sosId = navSosId;
-    try {
-        const pos = await getPosition();
-        if (!pos) {
-            $("navNext").textContent = "Chưa lấy được vị trí GPS của bạn. Hãy bật định vị.";
-            return;
-        }
-        if (!helperLocationSender) {
-            api("/api/helper/location", { method: "PUT", body: JSON.stringify({ latitude: pos.latitude, longitude: pos.longitude }) }).catch(() => {});
-        }
-        const route = await api(`/api/sos/${sosId}/route?lat=${pos.latitude}&lon=${pos.longitude}`);
-        if (sosId !== navSosId) return;
-        drawRoute(route, pos);
-    } catch (e) {
-        if (sosId === navSosId) $("navNext").textContent = e.message;
-    } finally {
-        navBusy = false;
-    }
-}
-
-function drawRoute(route, pos) {
-    const map = mapInstance;
-    if (!map) return;
-    const style = { color: "#2563eb", weight: 5, opacity: 0.85, dashArray: route.approximate ? "8 8" : null };
-    if (navLine) { navLine.setLatLngs(route.coordinates); navLine.setStyle(style); }
-    else navLine = L.polyline(route.coordinates, style).addTo(map);
-
-    const here = [pos.latitude, pos.longitude];
-    if (navHelperMarker) navHelperMarker.setLatLng(here);
-    else navHelperMarker = L.circleMarker(here, { radius: 8, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }).addTo(map).bindPopup("Bạn đang ở đây");
-
-    if (!navFitted) {
-        map.invalidateSize();
-        map.fitBounds(navLine.getBounds(), { padding: [24, 24] });
-        navFitted = true;
-    }
-
-    const meta = `🚗 Còn ${route.distance_km} km · khoảng ${route.duration_min} phút`;
-    $("navMeta").textContent = route.approximate ? meta + " (ước tính theo đường chim bay)" : meta;
-
-    if (route.distance_km < 0.05) {
-        $("navNext").textContent = "📍 Bạn đã tới nơi!";
-    } else if (route.steps.length >= 2) {
-        $("navNext").textContent = `${route.steps[1].instruction} sau ${fmtDist(route.steps[0].distance_m)}`;
-    } else {
-        $("navNext").textContent = "Đi theo đường màu xanh trên bản đồ.";
-    }
-}
-
-function fitRoute() {
-    if (mapInstance && navLine) {
-        mapInstance.invalidateSize();
-        mapInstance.fitBounds(navLine.getBounds(), { padding: [24, 24] });
-    }
-}
-
 async function loadNearbyServices() {
     const pos = await getPosition();
     if (!pos) { alert("Chưa bật GPS!"); return; }
@@ -778,10 +668,6 @@ async function sendSOS() {
     let url = `/api/sos?issue_type=${encodeURIComponent(issue)}&proposed_price=${price}`;
     const pos = await getPosition();
     if (pos) url += `&latitude=${pos.latitude}&longitude=${pos.longitude}`;
-    await submitSOS(url);
-}
-
-async function submitSOS(url) {
     try {
         const data = await api(url, { method: "POST" });
         await openChat(data.sos_id);
@@ -825,30 +711,6 @@ async function acceptDispatchedOrder() {
     } catch (e) { alert(e.message); }
 }
 
-async function proposePrice() {
-    const price = parseFloat(prompt("Nhập giá đề nghị mới (VNĐ):", "50000"));
-    if (!price || price <= 0) return;
-    try {
-        await api(`/api/sos/${activeSosId}/negotiate?final_price=${price}`, { method: "PUT" });
-        await refreshChat();
-    } catch (e) { alert(e.message); }
-}
-
-async function respondPrice(action, expectedPrice) {
-    try {
-        await api(`/api/sos/${activeSosId}/respond?action=${action}&expected_price=${encodeURIComponent(expectedPrice)}`, { method: "PUT" });
-        await refreshChat();
-    } catch (e) { alert(e.message); }
-}
-
-async function completeOrder() {
-    if (!confirm("Xác nhận hoàn thành đơn cứu hộ?")) return;
-    try {
-        await api(`/api/sos/${activeSosId}/complete`, { method: "PUT" });
-        await refreshChat();
-    } catch (e) { alert(e.message); }
-}
-
 async function openChat(sosId) {
     activeSosId = Number(sosId);
     sessionStorage.setItem("active_sos_id", activeSosId);
@@ -857,179 +719,24 @@ async function openChat(sosId) {
     await refreshChat();
 }
 
-function stars(rating, count) {
-    return rating === null || rating === undefined ? "chưa có đánh giá" : `⭐ ${rating} (${count})`;
-}
-
-function renderApproval(sos, isOwner, isHelper) {
-    const box = $("approvalSection");
-    let info = "";
-    if (sos.helper_id) {
-        if (isOwner) {
-            info = `<div class="note">Thợ: <b>${esc(sos.helper_name || "")}</b> · ${stars(sos.helper_rating, sos.helper_review_count)}${sos.helper_verified ? " · ✔ Đã xác minh" : ""}</div>`;
-        } else {
-            info = `<div class="note">Khách: <b>${esc(sos.user_name || "")}</b> · ${stars(sos.user_rating, sos.user_review_count)}</div>`;
-        }
-    }
-    if (sos.status === "COMPLETED") {
-        const existing = $("reviewBox");
-        if (existing && existing.dataset.sos == sos.id) return;
-        box.innerHTML = `<div class="note">Đơn đã hoàn thành.</div><div id="reviewBox" class="review-box" data-sos="${sos.id}"></div><button class="btn blue small" onclick="closeCompleted()" style="margin-bottom:8px;">Đóng khung chat</button>`;
-        loadReviewBox(sos);
-        return;
-    }
-    let html = info;
-    if (TERMINAL.includes(sos.status)) {
-        html += `<div class="note">Đơn đã kết thúc (${esc(sos.status)}).</div><button class="btn blue small" onclick="clearActive()" style="margin-bottom:8px;">Đóng khung chat</button>`;
-    } else if (sos.status === "PENDING") {
-        html += `<div class="note">${isOwner ? "Đang chờ thợ nhận đơn..." : ""}</div>`;
-    } else if (sos.status === "WAITING_APPROVAL" && isOwner) {
-        html += `<div class="note">Thợ đề nghị <b>${money(sos.agreed_price)} VNĐ</b></div><div style="display:flex; gap:8px; margin-bottom:8px;"><button class="btn green small" onclick="respondPrice('ACCEPT', ${sos.agreed_price})">✅ Đồng ý</button><button class="btn grey small" onclick="respondPrice('REJECT', ${sos.agreed_price})">❌ Từ chối</button></div>`;
-    } else if (sos.status === "WAITING_APPROVAL" && isHelper) {
-        html += `<div class="note">Đang chờ khách xác nhận mức giá ${money(sos.agreed_price)} VNĐ...</div>`;
-    } else if (sos.status === "CHATTING" && isHelper) {
-        html += `<div class="note">Khách chưa đồng ý giá.</div><button class="btn blue small" onclick="proposePrice()" style="margin-bottom:8px;">💰 Đề nghị giá khác</button>`;
-    } else if (sos.status === "NEGOTIATING") {
-        html += `<div class="note">Đã thống nhất giá <b>${money(sos.agreed_price)} VNĐ</b>.</div><button class="btn green small" onclick="completeOrder()" style="margin-bottom:8px;">🏁 Hoàn thành đơn</button>`;
-    }
-    box.innerHTML = html;
-}
-
-async function loadReviewBox(sos) {
-    const target = $("reviewBox");
-    if (!target) return;
-    try {
-        const mine = await api(`/api/sos/${sos.id}/review`);
-        if (mine.reviewed) {
-            target.innerHTML = `<div class="note">Bạn đã đánh giá ${"⭐".repeat(mine.rating)}${mine.comment ? " - " + esc(mine.comment) : ""}</div>`;
-            return;
-        }
-        target.innerHTML = `
-            <label style="font-size:13px; font-weight:bold;">Đánh giá đối phương</label>
-            <select id="reviewRating">
-                <option value="5">⭐⭐⭐⭐⭐ Tuyệt vời</option>
-                <option value="4">⭐⭐⭐⭐ Tốt</option>
-                <option value="3">⭐⭐⭐ Bình thường</option>
-                <option value="2">⭐⭐ Chưa tốt</option>
-                <option value="1">⭐ Rất tệ</option>
-            </select>
-            <input type="text" id="reviewComment" maxlength="300" placeholder="Nhận xét (không bắt buộc)">
-            <button class="btn green small" onclick="submitReview(${sos.id})">Gửi đánh giá</button>`;
-    } catch (e) {
-        target.innerHTML = "";
-    }
-}
-
-async function submitReview(sosId) {
-    try {
-        await api(`/api/sos/${sosId}/review`, { method: "POST", body: JSON.stringify({ rating: parseInt($("reviewRating").value), comment: $("reviewComment").value.trim() }) });
-        await loadReviewBox({ id: sosId });
-    } catch (e) { alert(e.message); }
-}
-
 async function refreshChat() {
     if (!activeSosId) return;
     try {
         const sos = await api(`/api/sos/${activeSosId}`);
         currentSos = sos;
-        const uid = parseInt(sessionStorage.getItem("user_id"));
-        const isOwner = sos.user_id === uid;
-        const isHelper = sos.helper_id === uid;
-        const isCorrectTab = (currentTab === "victim" && isOwner) || (currentTab === "helper" && isHelper);
-        const finished = TERMINAL.includes(sos.status);
-
-        $("chatSection").classList.toggle("hidden", !isCorrectTab);
+        $("chatSection").classList.remove("hidden");
         $("chatTitle").textContent = `💬 Đơn #${sos.id} (${sos.status})`;
-        $("chatInputRow").classList.toggle("hidden", finished);
-        renderApproval(sos, isOwner, isHelper);
-        renderPayment(sos, isOwner, isHelper);
-
-        const otherPhone = isOwner ? sos.helper_phone : sos.user_phone;
-        const callBtn = $("callBtn");
-        if (otherPhone) {
-            callBtn.href = "tel:" + otherPhone;
-            callBtn.classList.remove("hidden");
-        } else {
-            callBtn.classList.add("hidden");
-        }
-
-        if (isOwner && sos.helper_id && !finished) startTrackingHelperOnMap(sos.id); else stopTracking();
-        if (isHelper && isCorrectTab && !finished) startHelperNavigation(sos); else stopNavigation();
-
-        const messages = await api(`/api/sos/${sos.id}/messages`);
-        const box = $("chatContainer");
-        box.innerHTML = messages.map(m => `<div class="msg"><b>${m.sender_id === uid ? 'Bạn' : 'Đối phương'}:</b> ${esc(m.content)}</div>`).join("");
-        box.scrollTop = box.scrollHeight;
-
-        const awaitingPayment = sos.status === "COMPLETED" && sos.payment_status !== "PAID";
-        if (finished && !awaitingPayment && pollTimer) {
-            clearInterval(pollTimer);
-            pollTimer = null;
-        }
-    } catch (e) {
-        if (/không thuộc|Không tìm thấy/.test(e.message)) clearActive();
-    }
-}
-
-async function sendChat() {
-    const content = $("chatInput").value.trim();
-    if (!activeSosId || !content) return;
-    try {
-        await api(`/api/sos/${activeSosId}/messages`, { method: "POST", body: JSON.stringify({ content }) });
-        $("chatInput").value = "";
-        await refreshChat();
-    } catch (e) { alert(e.message); }
-}
-
-async function openCancelModal() {
-    const reason = prompt("Lý do hủy đơn:");
-    if (!reason) return;
-    try {
-        await api(`/api/sos/${activeSosId}/cancel`, { method: "PUT", body: JSON.stringify({ reason }) });
-        alert("Đã hủy đơn.");
-        clearActive();
-    } catch (e) { alert(e.message); }
-}
-
-async function openReportModal() {
-    const reason = prompt("Nội dung báo cáo:");
-    if (!reason) return;
-    try {
-        const res = await api(`/api/sos/${activeSosId}/report`, { method: "POST", body: JSON.stringify({ reason }) });
-        alert(res.message);
-    } catch (e) { alert(e.message); }
-}
-
-function clearActive() {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = null;
-    stopTracking();
-    stopNavigation();
-    if (mapInstance) { mapInstance.remove(); mapInstance = null; markerInstance = null; }
-    $("mapContainer").classList.add("hidden");
-    $("approvalSection").innerHTML = "";
-    $("paymentSection").innerHTML = "";
-    $("paymentSection").dataset.sig = "";
-    activeSosId = null;
-    currentSos = null;
-    sessionStorage.removeItem("active_sos_id");
-    $("chatSection").classList.add("hidden");
+    } catch (e) {}
 }
 
 async function logout() {
     wsClosedByUs = true;
     if (ws) { try { ws.close(); } catch (e) {} }
     try { await api("/api/helper/availability", { method: "PUT", body: JSON.stringify({ available: false, max_distance: 10 }) }); } catch (e) {}
-    try {
-        const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
-        const sub = reg ? await reg.pushManager.getSubscription() : null;
-        if (sub) await api("/api/push/unsubscribe", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) });
-    } catch (e) {}
     sessionStorage.clear();
     window.location.replace("/static/login.html");
 }
 
-/* REALTIME */
 function connectRealtime() {
     const token = sessionStorage.getItem("token");
     if (!token || wsClosedByUs) return;
@@ -1040,286 +747,24 @@ function connectRealtime() {
     ws.onmessage = ev => {
         let msg;
         try { msg = JSON.parse(ev.data); } catch (e) { return; }
-        handleRealtime(msg);
+        if (msg.type === "ready") { wsConnected = true; }
+        else if (msg.type === "new_sos") { backgroundRadarPoll(); }
     };
-    ws.onclose = ev => {
-        wsConnected = false;
-        clearInterval(wsPingTimer);
-        if (wsClosedByUs || ev.code === 4401) return;
-        setTimeout(connectRealtime, Math.min(30000, 1000 * Math.pow(2, wsRetry++)));
-    };
-    ws.onerror = () => {};
-}
-
-function handleRealtime(msg) {
-    if (msg.type === "ready") {
-        wsConnected = true;
-        wsRetry = 0;
-        clearInterval(wsPingTimer);
-        wsPingTimer = setInterval(() => { if (ws && ws.readyState === WebSocket.OPEN) ws.send("ping"); }, 25000);
-        backgroundRadarPoll();
-        if (activeSosId) refreshChat();
-    } else if (msg.type === "new_sos") {
-        backgroundRadarPoll();
-    } else if (msg.type === "sos_update") {
-        if (activeSosId === msg.sos_id) refreshChat();
-    } else if (msg.type === "helper_location") {
-        if (trackingSosId === msg.sos_id && mapInstance && markerInstance) {
-            lastHelperPush = Date.now();
-            markerInstance.setLatLng([msg.latitude, msg.longitude]);
-            mapInstance.setView([msg.latitude, msg.longitude]);
-        }
-    }
-}
-
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible") return;
-    connectRealtime();
-    if (activeSosId) refreshChat();
-    backgroundRadarPoll();
-});
-
-/* THÔNG BÁO ĐẨY */
-function setPushMsg(text) { $("pushMsg").textContent = text; }
-
-function urlBase64ToUint8Array(base64String) {
-    const padding = "=".repeat((4 - base64String.length % 4) % 4);
-    const raw = atob((base64String + padding).replace(/-/g, "+").replace(/_/g, "/"));
-    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-}
-
-async function subscribePush() {
-    const { public_key } = await api("/api/push/public-key");
-    if (!public_key) throw new Error("Server chưa bật thông báo đẩy.");
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(public_key) });
-    await api("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub.toJSON()) });
+    ws.onclose = () => { wsConnected = false; setTimeout(connectRealtime, 5000); };
 }
 
 async function enablePush() {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        setPushMsg("Trình duyệt này chưa hỗ trợ thông báo đẩy.");
-        return;
-    }
     try {
         const permission = await Notification.requestPermission();
-        if (permission !== "granted") { setPushMsg("Bạn chưa cho phép thông báo."); return; }
-        await subscribePush();
-        setPushMsg("✅ Đã bật thông báo đẩy trên thiết bị này.");
-    } catch (e) { setPushMsg(e.message); }
+        if (permission === "granted") alert("✅ Đã bật thông báo thành công!");
+    } catch (e) {}
 }
-
-async function resubscribePushIfGranted() {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
-    try { await subscribePush(); setPushMsg("✅ Thông báo đẩy đang bật trên thiết bị này."); } catch (e) {}
-}
-
-/* THANH TOÁN */
-function renderPayment(sos, isOwner, isHelper) {
-    const box = $("paymentSection");
-    const payable = sos.agreed_price && ["NEGOTIATING", "COMPLETED"].includes(sos.status);
-    const sig = JSON.stringify([payable, sos.status, sos.agreed_price, sos.payment_method, sos.payment_status, sos.payment_qr_url, sos.helper_has_bank, isOwner, isHelper]);
-    if (box.dataset.sig === sig) return;
-    box.dataset.sig = sig;
-    if (!payable) { box.innerHTML = ""; return; }
-
-    const label = { CASH: "tiền mặt", TRANSFER: "chuyển khoản" };
-    const paid = sos.payment_status === "PAID";
-    let html = `<div class="pay-box${paid ? " paid" : ""}"><b>💳 Thanh toán: ${money(sos.agreed_price)} VNĐ</b><br>`;
-
-    if (paid) {
-        html += `<span class="ok">✅ Đã thanh toán bằng ${label[sos.payment_method] || "tiền mặt"}</span>`;
-    } else if (isOwner) {
-        html += `<select id="payMethod" onchange="setPaymentMethod(this.value)" style="margin-top:8px;">
-            <option value="">-- Chọn cách thanh toán --</option>
-            <option value="CASH" ${sos.payment_method === "CASH" ? "selected" : ""}>💵 Tiền mặt</option>
-            <option value="TRANSFER" ${sos.payment_method === "TRANSFER" ? "selected" : ""}>🏦 Chuyển khoản (quét QR)</option>
-        </select>`;
-        if (sos.payment_method === "TRANSFER" && sos.payment_qr_url && sos.bank_info) {
-            html += `<img src="${esc(sos.payment_qr_url)}" alt="Mã QR chuyển khoản">
-                <div style="font-size:13px;">${esc(sos.bank_info.bank_code)} · STK <b>${esc(sos.bank_info.account)}</b><br>Chủ TK: ${esc(sos.bank_info.holder || "")}<br>Nội dung: SOS ${sos.id}</div>`;
-        } else if (sos.payment_method === "CASH") {
-            html += `<div class="muted" style="margin-top:6px;">Hãy đưa tiền mặt cho thợ.</div>`;
-        }
-    } else if (isHelper) {
-        const method = sos.payment_method ? `Khách chọn: <b>${label[sos.payment_method]}</b>` : "Khách chưa chọn cách thanh toán.";
-        html += `<div style="margin:6px 0;">${method}</div>`;
-        if (!sos.helper_has_bank) html += `<div class="muted" style="margin-bottom:6px;">Bạn chưa thêm tài khoản ngân hàng.</div>`;
-        html += `<button class="btn green small" onclick="confirmPaid()">✅ Tôi đã nhận đủ tiền</button>`;
-    }
-    box.innerHTML = html + `</div>`;
-}
-
-async function setPaymentMethod(method) {
-    if (!method) return;
-    try { await api(`/api/sos/${activeSosId}/payment-method`, { method: "PUT", body: JSON.stringify({ method }) }); } catch (e) { alert(e.message); }
-    await refreshChat();
-}
-
-async function confirmPaid() {
-    if (!confirm("Xác nhận bạn đã nhận ĐỦ tiền từ khách?")) return;
-    try { await api(`/api/sos/${activeSosId}/confirm-paid`, { method: "PUT" }); } catch (e) { alert(e.message); }
-    await refreshChat();
-}
-
-function closeCompleted() {
-    if (currentSos && currentSos.payment_status !== "PAID" && !confirm("Đơn này chưa được xác nhận thanh toán. Vẫn đóng?")) return;
-    clearActive();
-}
-
-async function loadBank() {
-    $("bankMsg").textContent = "";
-    try {
-        const b = await api("/api/helper/bank");
-        const select = $("bankCode");
-        if (select.options.length <= 1) {
-            Object.entries(b.banks).forEach(([code, name]) => select.add(new Option(`${name} (${code})`, code)));
-        }
-        select.value = b.bank_code;
-        $("bankAccount").value = b.bank_account;
-        $("bankHolder").value = b.bank_holder;
-    } catch (e) { $("bankMsg").textContent = e.message; }
-}
-
-async function saveBank() {
-    try {
-        const data = await api("/api/helper/bank", { method: "PUT", body: JSON.stringify({ bank_code: $("bankCode").value, bank_account: $("bankAccount").value, bank_holder: $("bankHolder").value }) });
-        $("bankMsg").textContent = data.message;
-    } catch (e) { $("bankMsg").textContent = e.message; }
-}
-
-let emailTimer = null;
-function setAccMsg(text) { $("accMsg").textContent = text; }
 
 async function loadAccount() {
-    setAccMsg("");
-    const phone = sessionStorage.getItem("phone") || "";
-    const name = sessionStorage.getItem("name") || "ĐỖ KHÁNH HÙNG";
-    const uid = sessionStorage.getItem("user_id") || "";
-    
-    $("accPhone").textContent = phone;
-    $("driverHeaderName").textContent = name;
-    $("sidebarDriverName").textContent = name;
-    $("sidebarPhoneId").textContent = `SĐT ${phone} - ID: ${uid}`;
-    
-    try {
-        const me = await api("/api/auth/me");
-        if (me.email) sessionStorage.setItem("email", me.email); else sessionStorage.removeItem("email");
-        $("emailLinked").classList.toggle("hidden", !me.email);
-        $("emailForm").classList.toggle("hidden", !!me.email);
-        $("emailCurrent").textContent = me.email || "";
-        $("emailCodeRow").classList.add("hidden");
-    } catch (e) { setAccMsg(e.message); }
-}
-
-function startEmailCooldown(seconds) {
-    clearInterval(emailTimer);
-    const btn = $("emailSendBtn");
-    let left = seconds;
-    btn.disabled = true;
-    btn.textContent = `Gửi lại mã (${left}s)`;
-    emailTimer = setInterval(() => {
-        left -= 1;
-        if (left <= 0) {
-            clearInterval(emailTimer);
-            btn.disabled = false;
-            btn.textContent = "Gửi lại mã";
-        } else {
-            btn.textContent = `Gửi lại mã (${left}s)`;
-        }
-    }, 1000);
-}
-
-async function sendEmailCode() {
-    const email = $("emailInput").value.trim();
-    if (!email) { setAccMsg("Hãy nhập email!"); return; }
-    setAccMsg("Đang gửi mã...");
-    $("emailSendBtn").disabled = true;
-    try {
-        const data = await api("/api/auth/email/request", { method: "POST", body: JSON.stringify({ email }) });
-        $("emailCodeRow").classList.remove("hidden");
-        $("emailCodeInput").focus();
-        setAccMsg(data.dev_code ? `Mã của bạn: ${data.dev_code}` : `Đã gửi mã tới ${email}.`);
-        startEmailCooldown(data.cooldown || 60);
-    } catch (e) {
-        setAccMsg(e.message);
-        $("emailSendBtn").disabled = false;
-    }
-}
-
-async function verifyEmailCode() {
-    const email = $("emailInput").value.trim();
-    const code = $("emailCodeInput").value.trim();
-    if (!/^\d{6}$/.test(code)) { setAccMsg("Mã xác nhận gồm đúng 6 chữ số."); return; }
-    try {
-        const data = await api("/api/auth/email/verify", { method: "POST", body: JSON.stringify({ email, code }) });
-        sessionStorage.setItem("email", data.email);
-        clearInterval(emailTimer);
-        $("emailInput").value = "";
-        $("emailCodeInput").value = "";
-        await loadAccount();
-        setAccMsg(data.message);
-    } catch (e) { setAccMsg(e.message); }
-}
-
-async function unlinkEmail() {
-    if (!confirm("Gỡ email khỏi tài khoản?")) return;
-    try {
-        const data = await api("/api/auth/email", { method: "DELETE" });
-        await loadAccount();
-        setAccMsg(data.message);
-    } catch (e) { setAccMsg(e.message); }
-}
-
-function fileToDataUrl(file, maxSide = 900, quality = 0.7) {
-    return new Promise((resolve, reject) => {
-        const url = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => {
-            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.round(img.width * scale);
-            canvas.height = Math.round(img.height * scale);
-            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-            URL.revokeObjectURL(url);
-            resolve(canvas.toDataURL("image/jpeg", quality));
-        };
-        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Không đọc được ảnh!")); };
-        img.src = url;
-    });
-}
-
-async function loadVerification() {
-    try {
-        const v = await api("/api/helper/verification");
-        const labels = { NONE: "Chưa gửi hồ sơ.", PENDING: "⏳ Đang chờ duyệt.", APPROVED: "✔ Đã được duyệt.", REJECTED: "❌ Chưa được duyệt." };
-        $("verifyStatus").textContent = labels[v.status] || v.status;
-        $("verifyForm").classList.toggle("hidden", v.status === "PENDING" || v.status === "APPROVED");
-        if (v.vehicle_info && !$("vehicleInfo").value) $("vehicleInfo").value = v.vehicle_info;
-    } catch (e) { $("verifyStatus").textContent = e.message; }
-}
-
-async function submitVerification() {
-    const vehicleInfo = $("vehicleInfo").value.trim();
-    const vehicleFile = $("vehiclePhotoFile").files[0];
-    const certFile = $("certPhotoFile").files[0];
-    if (!vehicleInfo || !vehicleFile) { alert("Nhập đủ thông tin xe và ảnh!"); return; }
-    const btn = $("verifySubmitBtn");
-    btn.disabled = true;
-    btn.textContent = "Đang gửi...";
-    try {
-        const body = {
-            vehicle_info: vehicleInfo,
-            vehicle_photo: await fileToDataUrl(vehicleFile),
-            cert_photo: certFile ? await fileToDataUrl(certFile) : ""
-        };
-        await api("/api/helper/verify-submit", { method: "POST", body: JSON.stringify(body) });
-        await loadVerification();
-    } catch (e) { alert(e.message); }
-    btn.disabled = false;
-    btn.textContent = "Gửi hồ sơ";
+    $("accPhone").textContent = sessionStorage.getItem("phone") || "";
+    $("driverHeaderName").textContent = sessionStorage.getItem("name") || "ĐỖ KHÁNH HÙNG";
+    $("sidebarDriverName").textContent = sessionStorage.getItem("name") || "ĐỖ KHÁNH HÙNG";
+    $("sidebarPhoneId").textContent = `SĐT ${sessionStorage.getItem("phone") || ""} - ID: ${sessionStorage.getItem("user_id") || ""}`;
 }
 
 async function checkHealth() {
@@ -1337,7 +782,6 @@ async function checkHealth() {
 }
 
 window.onload = async () => {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(() => {});
     loadSettings();
     const isWorking = localStorage.getItem("work_status") === "ON";
     $("workToggle").checked = isWorking;
@@ -1349,7 +793,6 @@ window.onload = async () => {
     radarTimer = setInterval(() => { radarTick++; if (!wsConnected || radarTick % 5 === 0) backgroundRadarPoll(); }, 4000);
     connectRealtime();
     syncAvailability();
-    resubscribePushIfGranted();
     const saved = sessionStorage.getItem("active_sos_id");
     if (saved) await openChat(saved);
 };
