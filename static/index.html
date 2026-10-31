@@ -7,14 +7,12 @@
 <title>P2P SOS Unified</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Thêm FontAwesome để hiển thị icon đồng bộ giao diện tài xế -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 * { box-sizing: border-box; }
 body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f9; color: #1f2937; display: flex; justify-content: center; }
-.app { width: 100%; max-width: 480px; min-height: 100vh; background: #f8f9fc; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+.app { width: 100%; max-width: 480px; min-height: 100vh; background: #f8f9fc; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; padding-bottom: 70px; }
 
-/* HEADER MỚI PHONG CÁCH TÀI XẾ */
 .header-driver { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; }
 .driver-profile { display: flex; align-items: center; gap: 12px; }
 .driver-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #ea580c; }
@@ -24,7 +22,7 @@ body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f1f4f
 .gear-btn { background: #f3f4f6; border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #374151; font-size: 18px; transition: background 0.2s; }
 .gear-btn:hover { background: #e5e7eb; }
 
-/* TABS ĐIỀU HƯỚNG GIỐNG ẢNH MẪU */
+/* 2 TABS CHÍNH */
 .tabs { display: flex; background: #fff; border-bottom: 2px solid #f3f4f6; }
 .tab { flex: 1; padding: 14px 4px; border: none; background: #fff; font-size: 13px; font-weight: 700; color: #9ca3af; cursor: pointer; border-bottom: 3px solid transparent; text-align: center; letter-spacing: 0.5px; transition: all 0.2s; }
 .tab.active { color: #ea580c; border-bottom-color: #ea580c; background: #fff; }
@@ -48,10 +46,11 @@ input:focus, select:focus { border-color: #ea580c; }
 .btn.small { width: auto; padding: 8px 12px; font-size: 13px; white-space: nowrap; }
 .empty { text-align: center; color: #9ca3af; font-size: 13px; padding: 15px; }
 
-/* TRẠNG THÁI TẠM NGHỈ & NÚT SẴN SÀNG HOẠT ĐỘNG */
 .rest-container { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px 10px; flex: 1; }
 .rest-icon-box { width: 100px; height: 100px; background: #fff7ed; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.03); }
-.ready-action-bar { position: sticky; bottom: 0; background: #fff; padding: 12px 16px; border-top: 1px solid #e5e7eb; z-index: 10; }
+
+/* THANH SẴN SÀNG HOẠT ĐỘNG DƯỚI CÙNG */
+.ready-action-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: #fff; padding: 12px 16px; border-top: 1px solid #e5e7eb; z-index: 10; }
 .ready-btn-wrapper { display: flex; align-items: center; background: #ea580c; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3); }
 .ready-btn-arrow { background: #c2410c; padding: 16px 20px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .ready-btn-text { flex: 1; text-align: center; color: #fff; font-weight: bold; font-size: 16px; padding: 16px; cursor: pointer; user-select: none; }
@@ -69,7 +68,7 @@ input:focus, select:focus { border-color: #ea580c; }
 input:checked + .slider { background-color: #16a34a; }
 input:checked + .slider:before { transform: translateX(26px); }
 
-/* SIDEBAR MENU MỚI (TRƯỢT TỪ TRÁI SANG) */
+/* SIDEBAR DRAWER */
 .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; z-index: 999; transition: opacity 0.3s; }
 .sidebar-overlay.hidden { display: none; opacity: 0; }
 .sidebar-drawer { width: 82%; max-width: 320px; background: #fff; height: 100%; display: flex; flex-direction: column; box-shadow: 4px 0 20px rgba(0,0,0,0.15); transform: translateX(0); transition: transform 0.3s ease-in-out; }
@@ -84,7 +83,7 @@ input:checked + .slider:before { transform: translateX(26px); }
 .sidebar-item-left i { width: 20px; color: #6b7280; text-align: center; }
 .sidebar-item:hover .sidebar-item-left i { color: #ea580c; }
 
-/* MODAL CÀI ĐẶT & NỔ ĐƠN */
+/* MODAL CÀI ĐẶT */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; }
 .modal-content { background: #fff; width: 92%; max-width: 450px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 85vh; display: flex; flex-direction: column; }
 .settings-tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 14px; overflow-x: auto; }
@@ -94,7 +93,7 @@ input:checked + .slider:before { transform: translateX(26px); }
 .s-pane.active { display: block; }
 .history-item { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
 
-.footer { text-align: center; padding: 10px; background: #e5e7eb; font-size: 12px; color: #374151; }
+.footer { text-align: center; padding: 10px; background: #e5e7eb; font-size: 12px; color: #374151; margin-bottom: 10px; }
 .note { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 8px 10px; border-radius: 10px; font-size: 13px; margin-bottom: 8px; }
 .note:empty { display: none; }
 .review-box { border-top: 1px dashed #d1d5db; padding-top: 8px; margin-bottom: 8px; }
@@ -112,7 +111,7 @@ input:checked + .slider:before { transform: translateX(26px); }
 </head>
 <body>
 <div class="app">
-    <!-- HEADER GIAO DIỆN TÀI XẾ MỚI -->
+    <!-- HEADER -->
     <header class="header-driver">
         <div class="driver-profile">
             <button class="gear-btn" onclick="openSidebarDrawer()" title="Menu cá nhân">
@@ -138,18 +137,17 @@ input:checked + .slider:before { transform: translateX(26px); }
         </div>
     </div>
 
-    <!-- TABS ĐIỀU HƯỚNG CHÍNH -->
+    <!-- 2 TABS CHÍNH: FREE-PICK & ĐANG LÀM -->
     <div class="tabs" style="margin-top: 12px;">
         <button class="tab active" id="tabVictim" onclick="switchTab('victim')">FREE-PICK</button>
         <button class="tab" id="tabHelper" onclick="switchTab('helper')">ĐANG LÀM</button>
-        <button class="tab" id="tabServices" onclick="switchTab('services')">TRẠM XĂNG/VÁ VỎ</button>
     </div>
 
     <div class="content">
         <div class="notice hidden" id="noticeBox"></div>
         <div class="card wait hidden" id="waitCard"></div>
 
-        <!-- TAB 1: GẶP NẠN / FREE-PICK -->
+        <!-- TAB 1: FREE-PICK -->
         <div id="victimPanel">
             <div class="rest-container" id="restStateBox">
                 <div class="rest-icon-box">
@@ -157,10 +155,10 @@ input:checked + .slider:before { transform: translateX(26px); }
                 </div>
                 <h2 style="font-size: 18px; font-weight: bold; color: #1f2937; margin: 0 0 6px 0;">Tạm nghỉ</h2>
                 <p style="font-size: 13px; color: #6b7280; max-width: 260px; margin: 0 0 20px 0;">Thay đổi trạng thái làm việc để nhận đơn hàng mới.</p>
-                <button class="btn" style="background: #fff; color: #374151; border: 1px solid #d1d5db; width: auto; padding: 10px 20px; font-size: 13px;" onclick="openSettingsModal()">Check on Free-Pick</button>
+                <button class="btn" style="background: #fff; color: #374151; border: 1px solid #d1d5db; width: auto; padding: 10px 20px; font-size: 13px;" onclick="openSettingsModal()">Cài đặt chung</button>
             </div>
 
-            <!-- Card tạo sự cố SOS (giữ nguyên chức năng cũ) -->
+            <!-- Card tạo sự cố SOS -->
             <div class="card danger hidden" id="victimActiveCard">
                 <h3>⚠️ Bạn đang gặp sự cố trên đường?</h3>
                 <input type="text" id="issueInput" placeholder="Mô tả sự cố (hết xăng, thủng lốp...)">
@@ -169,7 +167,7 @@ input:checked + .slider:before { transform: translateX(26px); }
             </div>
         </div>
 
-        <!-- TAB 2: THỢ CỨU HỘ / ĐANG LÀM -->
+        <!-- TAB 2: ĐANG LÀM -->
         <div id="helperPanel" class="hidden">
             <div class="switch-container">
                 <div>
@@ -187,7 +185,7 @@ input:checked + .slider:before { transform: translateX(26px); }
             </div>
         </div>
 
-        <!-- TAB 3: CÂY XĂNG & TIỆM XE -->
+        <!-- TAB 3: TRẠM XĂNG & VÁ VỎ (HIỂN THỊ KHI CHỌN TỪ MENU) -->
         <div id="servicesPanel" class="hidden">
             <div class="card">
                 <h3>🗺️ Trạm Xăng & Tiệm Sửa Xe Gần Bạn</h3>
@@ -227,7 +225,7 @@ input:checked + .slider:before { transform: translateX(26px); }
         </div>
     </div>
 
-    <!-- FOOTER / NÚT HÀNH ĐỘNG SẴN SÀNG HOẠT ĐỘNG (GIỐNG ẢNH MẪU 1) -->
+    <!-- THANH NÚT HÀNH ĐỘNG DƯỚI CÙNG (TỰ ĐỘNG ẨN KHI BẬT HOẠT ĐỘNG) -->
     <div class="ready-action-bar" id="bottomReadyBar">
         <div class="ready-btn-wrapper">
             <div class="ready-btn-arrow">
@@ -239,7 +237,7 @@ input:checked + .slider:before { transform: translateX(26px); }
         </div>
     </div>
 
-    <!-- SIDEBAR DRAWER (MENU TRƯỢT GIỐNG ẢNH MẪU 2) -->
+    <!-- SIDEBAR DRAWER (3 GẠCH NGANG) -->
     <div id="sidebarOverlay" class="sidebar-overlay hidden" onclick="closeSidebarDrawer()">
         <div id="sidebarDrawer" class="sidebar-drawer hidden" onclick="event.stopPropagation()">
             <div class="sidebar-header">
@@ -261,17 +259,11 @@ input:checked + .slider:before { transform: translateX(26px); }
                         <span class="slider"></span>
                     </label>
                 </div>
+                <!-- Đưa trạm xăng / vá vỏ vào menu 3 gạch -->
                 <a class="sidebar-item" onclick="closeSidebarDrawer(); switchTab('services');">
                     <div class="sidebar-item-left">
-                        <i class="fa-solid fa-location-dot"></i>
-                        <span>Điểm đến của tôi</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
-                </a>
-                <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('config', document.querySelector('.s-tab'));">
-                    <div class="sidebar-item-left">
-                        <i class="fa-solid fa-building"></i>
-                        <span>HUB</span>
+                        <i class="fa-solid fa-gas-pump"></i>
+                        <span>Trạm xăng / Vá vỏ</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
@@ -324,10 +316,11 @@ input:checked + .slider:before { transform: translateX(26px); }
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
+                <!-- Tích hợp cài đặt chung -->
                 <a class="sidebar-item" onclick="closeSidebarDrawer(); openSettingsModal(); switchSettingsTab('config', document.querySelector('.s-tab'));">
                     <div class="sidebar-item-left">
                         <i class="fa-solid fa-gear"></i>
-                        <span>Cài đặt</span>
+                        <span>Cài đặt chung</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
                 </a>
@@ -341,7 +334,7 @@ input:checked + .slider:before { transform: translateX(26px); }
         </div>
     </div>
 
-    <!-- POPUP CÀI ĐẶT -->
+    <!-- MODAL CÀI ĐẶT -->
     <div class="modal-overlay hidden" id="settingsModal">
         <div class="modal-content">
             <div class="modal-title" style="color:#ea580c; font-size:18px; text-align:center; font-weight:bold; margin-bottom:15px;">⚙️ Cài Đặt & Lịch Sử</div>
@@ -469,7 +462,6 @@ function switchTab(tab) {
 
     $("tabVictim").classList.toggle("active", tab === "victim");
     $("tabHelper").classList.toggle("active", tab === "helper");
-    $("tabServices").classList.toggle("active", tab === "services");
 
     if (activeSosId) refreshChat();
 }
@@ -477,7 +469,6 @@ function switchTab(tab) {
 function openSettingsModal() { $("settingsModal").classList.remove("hidden"); loadHistory(); }
 function closeSettingsModal() { $("settingsModal").classList.add("hidden"); }
 
-/* ĐIỀU KHIỂN SIDEBAR DRAWER */
 function openSidebarDrawer() {
     $("sidebarOverlay").classList.remove("hidden");
     setTimeout(() => $("sidebarDrawer").classList.remove("hidden"), 10);
@@ -565,13 +556,14 @@ function updateHelperStatusUI() {
     $("radarStatusText").style.color = isWorking ? "#16a34a" : "#dc2626";
     $("statusLabelText").textContent = isWorking ? "Trạng thái: Đang làm việc" : "Trạng thái: Đang ngưng";
     
-    // Đồng bộ giao diện Header và Màn hình Tạm nghỉ
     $("headerStatusText").textContent = isWorking ? "Đang hoạt động" : "Tạm nghỉ";
     $("headerStatusDot").style.background = isWorking ? "#16a34a" : "#dc2626";
     $("restStateBox").classList.toggle("hidden", isWorking);
     $("victimActiveCard").classList.toggle("hidden", !isWorking);
 
-    // Đồng bộ nút dưới cùng (bottomReadyBar)
+    // Ẩn/hiện thanh dưới cùng khi bật/tắt hoạt động
+    $("bottomReadyBar").classList.toggle("hidden", isWorking);
+
     if (isWorking) {
         $("btnToggleActive").textContent = "Tạm dừng hoạt động";
         document.querySelector(".ready-btn-wrapper").style.background = "#dc2626";
@@ -1037,7 +1029,7 @@ async function logout() {
     window.location.replace("/static/login.html");
 }
 
-/* ===================== REALTIME (WebSocket) ===================== */
+/* REALTIME */
 function connectRealtime() {
     const token = sessionStorage.getItem("token");
     if (!token || wsClosedByUs) return;
@@ -1087,7 +1079,7 @@ document.addEventListener("visibilitychange", () => {
     backgroundRadarPoll();
 });
 
-/* ===================== THÔNG BÁO ĐẨY ===================== */
+/* THÔNG BÁO ĐẨY */
 function setPushMsg(text) { $("pushMsg").textContent = text; }
 
 function urlBase64ToUint8Array(base64String) {
@@ -1107,12 +1099,12 @@ async function subscribePush() {
 
 async function enablePush() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        setPushMsg("Trình duyệt này chưa hỗ trợ thông báo đẩy. Trên iPhone hãy thêm app vào Màn hình chính rồi mở lại từ biểu tượng đó.");
+        setPushMsg("Trình duyệt này chưa hỗ trợ thông báo đẩy.");
         return;
     }
     try {
         const permission = await Notification.requestPermission();
-        if (permission !== "granted") { setPushMsg("Bạn chưa cho phép thông báo. Hãy bật quyền Thông báo cho trang này trong cài đặt trình duyệt."); return; }
+        if (permission !== "granted") { setPushMsg("Bạn chưa cho phép thông báo."); return; }
         await subscribePush();
         setPushMsg("✅ Đã bật thông báo đẩy trên thiết bị này.");
     } catch (e) { setPushMsg(e.message); }
@@ -1124,7 +1116,7 @@ async function resubscribePushIfGranted() {
     try { await subscribePush(); setPushMsg("✅ Thông báo đẩy đang bật trên thiết bị này."); } catch (e) {}
 }
 
-/* ===================== THANH TOÁN ===================== */
+/* THANH TOÁN */
 function renderPayment(sos, isOwner, isHelper) {
     const box = $("paymentSection");
     const payable = sos.agreed_price && ["NEGOTIATING", "COMPLETED"].includes(sos.status);
@@ -1147,15 +1139,14 @@ function renderPayment(sos, isOwner, isHelper) {
         </select>`;
         if (sos.payment_method === "TRANSFER" && sos.payment_qr_url && sos.bank_info) {
             html += `<img src="${esc(sos.payment_qr_url)}" alt="Mã QR chuyển khoản">
-                <div style="font-size:13px;">${esc(sos.bank_info.bank_code)} · STK <b>${esc(sos.bank_info.account)}</b><br>Chủ TK: ${esc(sos.bank_info.holder || "")}<br>Nội dung: SOS ${sos.id}</div>
-                <div class="muted" style="margin-top:6px;">Sau khi chuyển, thợ sẽ xác nhận đã nhận tiền. Hãy kiểm tra đúng số tiền và tên người nhận trước khi chuyển.</div>`;
+                <div style="font-size:13px;">${esc(sos.bank_info.bank_code)} · STK <b>${esc(sos.bank_info.account)}</b><br>Chủ TK: ${esc(sos.bank_info.holder || "")}<br>Nội dung: SOS ${sos.id}</div>`;
         } else if (sos.payment_method === "CASH") {
-            html += `<div class="muted" style="margin-top:6px;">Hãy đưa tiền mặt cho thợ, thợ sẽ xác nhận đã nhận.</div>`;
+            html += `<div class="muted" style="margin-top:6px;">Hãy đưa tiền mặt cho thợ.</div>`;
         }
     } else if (isHelper) {
         const method = sos.payment_method ? `Khách chọn: <b>${label[sos.payment_method]}</b>` : "Khách chưa chọn cách thanh toán.";
         html += `<div style="margin:6px 0;">${method}</div>`;
-        if (!sos.helper_has_bank) html += `<div class="muted" style="margin-bottom:6px;">Bạn chưa thêm tài khoản ngân hàng. Vào ⚙️ Cài đặt → Nhận Tiền để khách có thể chuyển khoản.</div>`;
+        if (!sos.helper_has_bank) html += `<div class="muted" style="margin-bottom:6px;">Bạn chưa thêm tài khoản ngân hàng.</div>`;
         html += `<button class="btn green small" onclick="confirmPaid()">✅ Tôi đã nhận đủ tiền</button>`;
     }
     box.innerHTML = html + `</div>`;
@@ -1163,22 +1154,18 @@ function renderPayment(sos, isOwner, isHelper) {
 
 async function setPaymentMethod(method) {
     if (!method) return;
-    try {
-        await api(`/api/sos/${activeSosId}/payment-method`, { method: "PUT", body: JSON.stringify({ method }) });
-    } catch (e) { alert(e.message); }
+    try { await api(`/api/sos/${activeSosId}/payment-method`, { method: "PUT", body: JSON.stringify({ method }) }); } catch (e) { alert(e.message); }
     await refreshChat();
 }
 
 async function confirmPaid() {
-    if (!confirm("Xác nhận bạn đã nhận ĐỦ tiền từ khách? Thao tác này không hoàn tác được.")) return;
-    try {
-        await api(`/api/sos/${activeSosId}/confirm-paid`, { method: "PUT" });
-    } catch (e) { alert(e.message); }
+    if (!confirm("Xác nhận bạn đã nhận ĐỦ tiền từ khách?")) return;
+    try { await api(`/api/sos/${activeSosId}/confirm-paid`, { method: "PUT" }); } catch (e) { alert(e.message); }
     await refreshChat();
 }
 
 function closeCompleted() {
-    if (currentSos && currentSos.payment_status !== "PAID" && !confirm("Đơn này chưa được xác nhận thanh toán. Bạn vẫn muốn đóng khung chat?")) return;
+    if (currentSos && currentSos.payment_status !== "PAID" && !confirm("Đơn này chưa được xác nhận thanh toán. Vẫn đóng?")) return;
     clearActive();
 }
 
@@ -1204,7 +1191,6 @@ async function saveBank() {
 }
 
 let emailTimer = null;
-
 function setAccMsg(text) { $("accMsg").textContent = text; }
 
 async function loadAccount() {
@@ -1255,7 +1241,7 @@ async function sendEmailCode() {
         const data = await api("/api/auth/email/request", { method: "POST", body: JSON.stringify({ email }) });
         $("emailCodeRow").classList.remove("hidden");
         $("emailCodeInput").focus();
-        setAccMsg(data.dev_code ? `Chế độ thử nghiệm - mã của bạn: ${data.dev_code}` : `Đã gửi mã tới ${email}. Mã có hiệu lực ${Math.round(data.expires_in / 60)} phút.`);
+        setAccMsg(data.dev_code ? `Mã của bạn: ${data.dev_code}` : `Đã gửi mã tới ${email}.`);
         startEmailCooldown(data.cooldown || 60);
     } catch (e) {
         setAccMsg(e.message);
@@ -1279,7 +1265,7 @@ async function verifyEmailCode() {
 }
 
 async function unlinkEmail() {
-    if (!confirm("Gỡ email khỏi tài khoản? Bạn sẽ không nhận thông báo qua email nữa.")) return;
+    if (!confirm("Gỡ email khỏi tài khoản?")) return;
     try {
         const data = await api("/api/auth/email", { method: "DELETE" });
         await loadAccount();
@@ -1308,7 +1294,7 @@ function fileToDataUrl(file, maxSide = 900, quality = 0.7) {
 async function loadVerification() {
     try {
         const v = await api("/api/helper/verification");
-        const labels = { NONE: "Bạn chưa gửi hồ sơ xác minh.", PENDING: "⏳ Hồ sơ đang chờ duyệt.", APPROVED: "✔ Hồ sơ đã được duyệt. Khách sẽ thấy bạn là thợ đã xác minh.", REJECTED: "❌ Hồ sơ chưa được duyệt" + (v.note ? ": " + v.note : "") + ". Bạn có thể gửi lại." };
+        const labels = { NONE: "Chưa gửi hồ sơ.", PENDING: "⏳ Đang chờ duyệt.", APPROVED: "✔ Đã được duyệt.", REJECTED: "❌ Chưa được duyệt." };
         $("verifyStatus").textContent = labels[v.status] || v.status;
         $("verifyForm").classList.toggle("hidden", v.status === "PENDING" || v.status === "APPROVED");
         if (v.vehicle_info && !$("vehicleInfo").value) $("vehicleInfo").value = v.vehicle_info;
@@ -1319,8 +1305,7 @@ async function submitVerification() {
     const vehicleInfo = $("vehicleInfo").value.trim();
     const vehicleFile = $("vehiclePhotoFile").files[0];
     const certFile = $("certPhotoFile").files[0];
-    if (!vehicleInfo) { alert("Hãy nhập thông tin xe!"); return; }
-    if (!vehicleFile) { alert("Hãy chọn ảnh xe!"); return; }
+    if (!vehicleInfo || !vehicleFile) { alert("Nhập đủ thông tin xe và ảnh!"); return; }
     const btn = $("verifySubmitBtn");
     btn.disabled = true;
     btn.textContent = "Đang gửi...";
